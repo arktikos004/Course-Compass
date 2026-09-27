@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  這是單頁應用，所有分頁（找課、缺額監控、歷年課程、統計儀表板）都在同一個網址下
+  以 JavaScript 切換，沒有各自的路徑，因此 sitemap 只有首頁一筆。
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://course.sekinv.com/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

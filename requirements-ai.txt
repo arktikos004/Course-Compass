@@ -1,0 +1,10 @@
+# AI 功能的額外套件：中籤預測訓練、選課助理、教學大綱搜尋
+#   pip install -r requirements.txt -r requirements-ai.txt
+#
+# 刻意與 requirements.txt 分開：CI 的測試與靜態網站建置只讀 data/models 裡的預測檔，
+# 不需要 scikit-learn；選課助理與大綱問答另外需要本機的 Ollama（https://ollama.com）。
+scikit-learn>=1.4
+numpy>=1.26
+joblib>=1.3
+ollama>=0.4
+pypdfium2>=4.30

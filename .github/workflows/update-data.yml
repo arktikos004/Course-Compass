@@ -1,0 +1,78 @@
+name: Update Course Data
+
+on:
+  schedule:
+    - cron: '0 20 * * *'    # 每日 04:00（台北時間）
+  workflow_dispatch:
+    inputs:
+      latest:
+        description: '只重爬最後 N 個學期（過去學期資料已凍結）'
+        required: false
+        default: '2'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Crawl latest semesters
+        run: python main.py crawl --latest ${{ github.event.inputs.latest || '2' }}
+
+      - name: Rebuild processed dataset
+        run: python main.py process
+
+      # teacher.csv 需人工審核，這裡只產生候選清單供人工併入，不覆寫 teacher.csv
+      - name: Rebuild teacher dictionary candidates
+        continue-on-error: true
+        run: |
+          cp data/dict/teacher.csv /tmp/teacher_curated.csv
+          python main.py build-dict
+          cp /tmp/teacher_curated.csv data/dict/teacher.csv
+
+      - name: Upload teacher review candidates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: teacher-dict-review
+          path: |
+            data/dict/teacher_dict_auto.csv
+            data/dict/teacher_high_risk.csv
+          if-no-files-found: ignore
+
+      # 只保留最新 2 份，避免每天累積一個約 6 MB 的 CSV 撐爆 repo
+      - name: Prune old processed datasets
+        run: |
+          ls -1t data/processed/all_courses_*.csv | tail -n +3 | xargs -r rm -v
+
+      - name: Commit updated data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # 教師字典候選檔屬於待審清單，不進版控
+          git checkout -- data/dict/ 2>/dev/null || true
+          git add data/raw data/processed
+          if git diff --staged --quiet; then
+            echo "課程資料無變動，略過 commit"
+          else
+            git commit -m "Chore: 自動更新課程資料 ($(date -u '+%Y-%m-%d'))"
+            git push
+          fi

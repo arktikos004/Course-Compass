@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--
+        SEO 說明：這是單頁應用，課程內容由 JavaScript 從 JSON 載入，
+        搜尋引擎能穩定索引的實質上只有這一頁的外殼。因此 title 與 description
+        以「讓搜尋彰師大選課的人找得到」為目標，而不是期待每門課都進搜尋結果。
+
+        站名尚未定案，目前 title 採關鍵字優先寫法，本身即為完整可用的 SEO；
+        日後要加品牌名只需接在最前面（例如「◯◯｜彰化師範大學選課查詢…」）。
+    -->
+    <title>彰化師範大學選課查詢｜歷年中籤率、缺額監控與課表規劃</title>
+    <meta name="description" content="彰化師範大學（NCUE）課程查詢與選課參考工具。提供歷年中籤率估算、通識課程競爭程度、即時缺額監控與課表衝堂檢查，收錄 111 學年度起共 9 個學期、逾一萬八千筆開課紀錄。非官方學生自製專案。">
+    <meta name="author" content="p66rkxwf">
+    <link rel="canonical" href="https://course.sekinv.com/">
+
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <!-- 分享到 LINE、Discord、Threads 時的預覽卡片 -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://course.sekinv.com/">
+    <meta property="og:title" content="彰化師範大學選課查詢｜歷年中籤率與缺額監控">
+    <meta property="og:description" content="查歷年中籤率、比較同課不同教師的難易度、監控即時缺額、規劃不衝堂的課表。收錄 9 個學期逾一萬八千筆開課紀錄。">
+    <meta property="og:locale" content="zh_TW">
+    <meta name="twitter:card" content="summary">
+
+    <!-- 結構化資料：讓搜尋結果知道這是一個查詢工具而非一般網頁 -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "彰化師範大學選課查詢",
+      "url": "https://course.sekinv.com/",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Any",
+      "inLanguage": "zh-Hant-TW",
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "TWD" },
+      "description": "彰化師範大學課程查詢與選課參考工具，提供歷年中籤率、通識課程競爭程度分析、即時缺額監控與課表衝堂檢查。非官方專案。"
+    }
+    </script>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container-fluid p-0 h-100 d-flex">
+        <aside id="sidebar" class="sidebar bg-white shadow-sm d-flex flex-column" role="navigation" aria-hidden="true">
+            <div class="p-4 border-bottom d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="fas fa-graduation-cap text-primary fs-3"></i>
+                    <h1 class="h5 mb-0 fw-bold">選課大師</h1>
+                </div>
+                <button class="btn btn-sm btn-light d-md-none sidebar-toggle" aria-controls="sidebar" aria-expanded="false" onclick="toggleSidebar()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <nav class="flex-grow-1 p-3">
+                <button onclick="switchTab('tab-schedule'); if(window.innerWidth < 768) toggleSidebar();" class="nav-btn btn w-100 text-start mb-2 active">
+                    <i class="far fa-calendar-days me-2"></i> 我的課表
+                </button>
+                <button onclick="switchTab('tab-find'); if(window.innerWidth < 768) toggleSidebar();" class="nav-btn btn w-100 text-start mb-2">
+                    <i class="fas fa-magnifying-glass me-2"></i> 找課
+                </button>
+                <button onclick="switchTab('tab-assistant'); if(window.innerWidth < 768) toggleSidebar();" class="nav-btn btn w-100 text-start mb-2">
+                    <i class="far fa-comments me-2"></i> 選課助理
+                </button>
+                <button onclick="switchTab('tab-vacancy'); if(window.innerWidth < 768) toggleSidebar();" class="nav-btn btn w-100 text-start mb-2">
+                    <i class="fas fa-bell me-2"></i> 缺額監控
+                </button>
+                <button onclick="switchTab('tab-history'); if(window.innerWidth < 768) toggleSidebar();" class="nav-btn btn w-100 text-start mb-2">
+                    <i class="fas fa-chart-line me-2"></i> 歷年課程
+                </button>
+                <button onclick="switchTab('tab-dashboard'); if(window.innerWidth < 768) toggleSidebar();" class="nav-btn btn w-100 text-start mb-2">
+                    <i class="fas fa-chart-simple me-2"></i> 統計儀表板
+                </button>
+                <button onclick="switchTab('tab-cluster-analysis'); if(window.innerWidth < 768) toggleSidebar();" class="nav-btn btn w-100 text-start mb-2">
+                    <i class="fas fa-chart-pie me-2"></i> 通識課程分群分析
+                </button>
+                
+                <button class="nav-btn w-100 text-start mt-3 border-top pt-3" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <i class="fas fa-cog me-2"></i> 系統設定
+                </button>
+                <button class="nav-btn w-100 text-start" data-bs-toggle="modal" data-bs-target="#logicInfoModal">
+                    <i class="fas fa-info-circle me-2"></i> 系統說明
+                </button>
+            </nav>
+
+            <div class="p-3 border-top text-center text-muted" style="font-size: 0.75rem; line-height: 1.5;">
+                <div>非官方學生自製專案，與彰化師範大學無隸屬關係</div>
+                <div class="mt-1">資料取自學校課程查詢系統，每日自動更新</div>
+                <div class="mt-1">選課請以
+                    <a href="https://webap0.ncue.edu.tw/DEANV2/Other/OB010" target="_blank" rel="noopener"
+                       class="text-decoration-none">學校系統</a>
+                    公告為準
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-grow-1 overflow-auto p-4 position-relative">
+            <button class="btn btn-outline-primary d-md-none mb-3 sidebar-toggle" aria-controls="sidebar" aria-expanded="false" onclick="toggleSidebar()">
+                <i class="fas fa-bars me-1"></i> 選單
+            </button>
+
+            <section id="tab-schedule" class="page-section" data-view="auto">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+                    <div class="mb-3 mb-md-0">
+                        <h2 class="h3 fw-bold mb-1">我的學期課表</h2>
+                        <p class="text-muted mb-0">一鍵導入班級必選修，輕鬆規劃學期進度</p>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body p-4">
+                        <div class="row g-3 mb-3 pb-3 border-bottom">
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted fw-bold">學年度</label>
+                                <!-- 選項由 /api/semesters 動態產生（見 main.js populateSemesterSelects） -->
+                                <select id="select-year" class="form-select"></select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted fw-bold">學期</label>
+                                <select id="select-semester" class="form-select"></select>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end justify-content-md-end">
+                                <button id="btn-clear" class="btn btn-outline-danger px-4">
+                                    <i class="fas fa-trash-alt me-1"></i> 清空課表
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="pending-semester-notice" class="alert alert-warning d-flex align-items-center py-2 mb-3 d-none">
+                            <i class="fas fa-hourglass-half me-2"></i>
+                            <span class="small pending-semester-text"></span>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small text-muted">1. 學制</label>
+                                <select id="select-system-schedule" class="form-select">
+                                    <option value="">全部學制</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small text-muted">2. 部別</label>
+                                <select id="select-level-schedule" class="form-select">
+                                    <option value="">全部部別</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small text-muted">3. 學院</label>
+                                <select id="select-college-schedule" class="form-select">
+                                    <option value="">選擇學院</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small text-muted">4. 科系</label>
+                                <select id="select-department-schedule" class="form-select">
+                                    <option value="">選擇科系</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 align-items-end">
+                            <div class="col-6 col-md-3">
+                                <label class="form-label small text-muted">5. 年級</label>
+                                <select id="select-grade-schedule" class="form-select">
+                                    <option value="">選擇年級</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-5">
+                                <label class="form-label small text-muted">6. 班級</label>
+                                <select id="select-class-schedule" class="form-select">
+                                    <option value="">選擇班級</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-4">
+                                <button id="btn-import" class="btn btn-primary w-100 py-2 shadow-sm fw-bold">
+                                    <i class="fas fa-file-import me-1"></i> 一鍵導入班級課表
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body p-0">
+                        <div id="schedule-table" class="schedule-container"></div>
+                        <div id="schedule-cards" class="schedule-cards d-none p-3"></div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">已選課程 (<span id="total-credits">0</span> 學分)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="selected-courses-list" class="row g-3"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!--
+                找課：搜尋與推薦合併後的單一查詢頁。
+
+                兩者本來是各自的分頁，但送的是同一組條件（連 category 都是同一個欄位），
+                後端也走同一個 apply_filters，等於同一件事做了兩套介面。合併後差別只剩
+                「排序選什麼」與「要不要把課表納入考量」，都變成這頁上的選項。
+            -->
+            <section id="tab-find" class="page-section d-none">
+                <div class="mb-3">
+                    <h2 class="h3 fw-bold mb-1">找課</h2>
+                    <p class="text-muted mb-0">關鍵字、條件篩選與選課推薦都在這裡</p>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-3">
+                    <div class="card-body p-3">
+                        <div class="input-group mb-3">
+                            <span class="input-group-text bg-transparent"><i class="fas fa-search"></i></span>
+                            <input type="text" id="find-keyword" class="form-control"
+                                   placeholder="課程名稱、教師姓名、課程代碼…（可留空，只用下方條件篩選）">
+                            <button id="btn-find-run" class="btn btn-primary px-4 fw-bold">
+                                <i class="fas fa-search me-2"></i>查詢
+                            </button>
+                        </div>
+
+                        <!--
+                            所有選單排成等寬網格（手機 2 欄、平板 3 欄、桌機 4 欄）。
+                            每個篩選條件的第一個選項一律是「全部／不限」，代表不套用該條件；
+                            未選擇時文字轉灰（見 style.css 的 .form-select:has(option[value=""]:checked)），
+                            一眼就能看出哪些條件實際生效。
+                        -->
+                        <div class="row g-3">
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">全校性課程</label>
+                                <select id="find-category" class="form-select form-select-sm">
+                                    <option value="">全部課程</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">通識類別</label>
+                                <select id="find-general-group" class="form-select form-select-sm">
+                                    <option value="">全部通識</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">學制</label>
+                                <select id="find-level" class="form-select form-select-sm">
+                                    <option value="">全部學制</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">日夜間部</label>
+                                <select id="find-division" class="form-select form-select-sm">
+                                    <option value="">全部</option>
+                                </select>
+                            </div>
+
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">學院</label>
+                                <select id="find-college" class="form-select form-select-sm">
+                                    <option value="">全部學院</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">系所</label>
+                                <select class="form-select form-select-sm" id="find-dept">
+                                    <option value="">全部系所</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">年級</label>
+                                <select class="form-select form-select-sm" id="find-grade">
+                                    <option value="">全部年級</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">排序</label>
+                                <select id="find-sort" class="form-select form-select-sm">
+                                    <option value="score">推薦分數</option>
+                                    <option value="relevance">關鍵字相關度</option>
+                                    <option value="vacancy">剩餘名額最多</option>
+                                    <option value="acceptance">最好選上（中籤率高）</option>
+                                    <option value="competitive">最搶手（中籤率低）</option>
+                                    <option value="registered">登記人數最多</option>
+                                    <option value="credits">學分數最高</option>
+                                    <option value="name">課程名稱</option>
+                                </select>
+                            </div>
+
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">學分下限</label>
+                                <input type="number" id="find-min-credits" class="form-control form-control-sm" min="0" max="10" step="0.5" placeholder="不限">
+                            </div>
+                            <div class="col-6 col-md-4 col-xl-3">
+                                <label class="form-label small text-muted mb-1">學分上限</label>
+                                <input type="number" id="find-max-credits" class="form-control form-control-sm" min="0" max="10" step="0.5" placeholder="不限">
+                            </div>
+                            <div class="col-12 col-md-8 col-xl-6">
+                                <label class="form-label small text-muted mb-1" for="find-target-credits">
+                                    目標學分：<span id="find-target-credits-value" class="fw-bold">27</span>
+                                    <span class="ms-1">— 扣掉已選學分後的剩餘額度會影響推薦分數</span>
+                                </label>
+                                <input type="range" class="form-range" id="find-target-credits" min="1" max="40" value="27">
+                            </div>
+                        </div>
+
+                        <!-- 通識子類 chips（跨學院通識的文/理/工…、素養通識的兩個領域） -->
+                        <div id="find-general-subs" class="mt-3"></div>
+
+                        <!-- 星期獨立成一列：六個 chip 與開關並排時寬度差太多，看起來會參差 -->
+                        <div class="mt-3">
+                            <label class="form-label small text-muted mb-1">星期（不勾選代表不限）</label>
+                            <div class="d-flex flex-wrap gap-1">
+                                <input type="checkbox" class="btn-check find-day" id="fday-1" value="1">
+                                <label class="btn btn-sm btn-outline-secondary" for="fday-1">一</label>
+                                <input type="checkbox" class="btn-check find-day" id="fday-2" value="2">
+                                <label class="btn btn-sm btn-outline-secondary" for="fday-2">二</label>
+                                <input type="checkbox" class="btn-check find-day" id="fday-3" value="3">
+                                <label class="btn btn-sm btn-outline-secondary" for="fday-3">三</label>
+                                <input type="checkbox" class="btn-check find-day" id="fday-4" value="4">
+                                <label class="btn btn-sm btn-outline-secondary" for="fday-4">四</label>
+                                <input type="checkbox" class="btn-check find-day" id="fday-5" value="5">
+                                <label class="btn btn-sm btn-outline-secondary" for="fday-5">五</label>
+                                <input type="checkbox" class="btn-check find-day" id="fday-6" value="6">
+                                <label class="btn btn-sm btn-outline-secondary" for="fday-6">六</label>
+                            </div>
+                        </div>
+
+                        <!--
+                            底部工具條：開關與動作按鈕收在同一條淺底列。
+                            上半部全是等寬選單、下半部全是開關，兩種區塊各自對齊，
+                            不再有「選單旁邊接開關」造成的寬度參差。
+                        -->
+                        <div class="find-toolbar d-flex flex-wrap align-items-center gap-3 mt-3">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="find-has-vacancy">
+                                <label class="form-check-label small text-nowrap" for="find-has-vacancy">只看仍有名額</label>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="find-english-only">
+                                <label class="form-check-label small text-nowrap" for="find-english-only">只看全英語授課</label>
+                            </div>
+                            <!-- 以下兩項需要讀取目前課表 -->
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="find-empty-slots">
+                                <label class="form-check-label small text-nowrap" for="find-empty-slots">只看我的空堂</label>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" id="find-exclude-conflicts">
+                                <label class="form-check-label small text-nowrap" for="find-exclude-conflicts">排除衝堂</label>
+                            </div>
+
+                            <button id="btn-find-reset" class="btn btn-sm btn-outline-secondary ms-auto">
+                                <i class="fas fa-eraser me-1"></i>清除條件
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                    <h3 class="h5 fw-bold mb-0 border-start border-4 border-primary ps-3">查詢結果</h3>
+                    <div class="d-flex align-items-center flex-wrap gap-2">
+                        <span class="text-muted small" id="find-summary"></span>
+                        <span class="badge bg-light text-muted border fw-normal d-none d-lg-inline" id="find-score-hint">
+                            <i class="fas fa-star me-1"></i>分數 = 選上機率 60% + 空額 25% + 學分符合 15%
+                        </span>
+                        <!-- 呈現方式偏好存 localStorage -->
+                        <div class="btn-group btn-group-sm" role="group" aria-label="結果呈現方式">
+                            <input type="radio" class="btn-check" name="find-view" id="find-view-card" value="card" checked>
+                            <label class="btn btn-outline-secondary" for="find-view-card" title="卡片檢視">
+                                <i class="fas fa-th-large"></i>
+                            </label>
+                            <input type="radio" class="btn-check" name="find-view" id="find-view-list" value="list">
+                            <label class="btn btn-outline-secondary" for="find-view-list" title="列表檢視">
+                                <i class="fas fa-list"></i>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="find-results" class="row g-3">
+                    <div class="col-12 text-center py-5 text-muted">
+                        <i class="fas fa-compass fa-3x mb-3 opacity-25"></i>
+                        <p class="mb-0">輸入關鍵字或選擇條件後開始查詢</p>
+                    </div>
+                </div>
+                <div id="find-load-more" class="text-center mt-4"></div>
+            </section>
+
+            <!-- 選課助理：需要本機的 Python API 與 Ollama，靜態網站上會顯示說明 -->
+            <section id="tab-assistant" class="page-section d-none">
+                <div class="mb-4">
+                    <h2 class="h3 fw-bold mb-1">選課助理</h2>
+                    <p class="text-muted mb-0">用一句話描述需求。助理會查課程資料、中籤預測與教學大綱，只推薦這學期實際開的課。</p>
+                </div>
+
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-3 p-md-4">
+                        <div class="d-flex flex-wrap gap-2 mb-3" id="assistant-examples">
+                            <button type="button" class="btn btn-sm btn-outline-secondary assistant-example">週五不要有課、2 學分通識、跟資料分析有關、不要太難搶</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary assistant-example">我想找三門英文課，只要週二或週四，不要早八</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary assistant-example">跟心理健康有關、好選的通識</button>
+                        </div>
+
+                        <div id="assistant-log" class="assistant-log" aria-live="polite">
+                            <div class="assistant-empty text-muted small">
+                                <span class="spinner-border spinner-border-sm me-2"></span>檢查本機 AI 服務…
+                            </div>
+                        </div>
+
+                        <form id="assistant-form" class="mt-3" autocomplete="off">
+                            <div class="input-group">
+                                <textarea id="assistant-input" class="form-control" rows="2" placeholder="例如：禮拜四五空下來，找好選的教育學程" aria-label="輸入選課需求"></textarea>
+                                <button class="btn btn-primary px-4" type="submit" id="assistant-send">
+                                    <i class="fas fa-paper-plane me-1"></i>送出
+                                </button>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+                                <span id="assistant-provider"></span>
+                                <button type="button" class="btn btn-link btn-sm p-0 text-muted" id="assistant-reset">清除對話</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 缺額監控：唯一會即時連線學校站台的頁面 -->
+            <section id="tab-vacancy" class="page-section d-none">
+                <div class="mb-4">
+                    <h2 class="h3 fw-bold mb-1">缺額監控</h2>
+                    <p class="text-muted mb-0">直接向學校系統查詢目前名額，不看已快取的資料</p>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-5">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-primary text-white py-3">
+                                <h5 class="mb-0 fs-6 fw-bold"><i class="fas fa-list-check me-2"></i>監控清單
+                                    <span class="badge bg-white text-primary ms-2" id="vacancy-count">0 / 12</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="input-group input-group-sm mb-3">
+                                    <input type="text" id="vacancy-code-input" class="form-control"
+                                           placeholder="輸入課程代碼，可用逗號分隔">
+                                    <button class="btn btn-outline-primary" id="btn-add-vacancy-code">加入</button>
+                                </div>
+
+                                <button class="btn btn-sm btn-outline-secondary w-100 mb-3" id="btn-import-schedule-vacancy">
+                                    <i class="fas fa-file-import me-2"></i>從我的課表加入
+                                </button>
+
+                                <div id="vacancy-watch-list" class="mb-3"></div>
+
+                                <div class="border-top pt-3">
+                                    <button class="btn btn-primary w-100 fw-bold mb-3" id="btn-check-vacancy">
+                                        <i class="fas fa-rotate me-2"></i>立即查詢
+                                    </button>
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="vacancy-auto-refresh">
+                                        <label class="form-check-label small" for="vacancy-auto-refresh">
+                                            自動更新（每分鐘，僅停留本頁時）
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="alert alert-light border small mt-3 mb-0">
+                                    <i class="fas fa-circle-info me-1 text-primary"></i>
+                                    想在關掉網頁後仍收到通知，請使用 LINE 推播版本
+                                    （<span class="font-monospace">ncue-course-monitor</span>，每 10 分鐘自動檢查）。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-transparent d-flex justify-content-between align-items-center py-3">
+                                <h5 class="mb-0 fs-6 fw-bold"><i class="fas fa-signal me-2 text-primary"></i>目前名額</h5>
+                                <span class="text-muted small" id="vacancy-timestamp">尚未查詢</span>
+                            </div>
+                            <div class="card-body p-0">
+                                <div id="vacancy-results" class="p-3"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 統計儀表板 -->
+            <section id="tab-dashboard" class="page-section d-none">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                    <div>
+                        <h2 class="h3 fw-bold mb-1">統計儀表板</h2>
+                        <p class="text-muted mb-0" id="dashboard-title">學期總覽</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" id="btn-refresh-dashboard">
+                        <i class="fas fa-rotate me-1"></i>重新整理
+                    </button>
+                </div>
+
+                <div class="row g-3 mb-4" id="dashboard-overview"></div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-chart-line me-2 text-primary"></i>各學期選課人數趨勢</h6>
+                        <p class="text-muted small mb-3">預選登記中的學期尚未分發，登記與選上人數會斷線不繪製。</p>
+                        <div style="height: 320px;"><canvas id="chart-trend"></canvas></div>
+                        <div class="table-responsive mt-4" id="dashboard-trend-table"></div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-3"><i class="fas fa-building-columns me-2 text-primary"></i>各學院開課數</h6>
+                                <div style="height: 320px;"><canvas id="chart-colleges"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-3"><i class="fas fa-layer-group me-2 text-primary"></i>學制與學分分佈</h6>
+                                <div style="height: 140px;"><canvas id="chart-levels"></canvas></div>
+                                <div style="height: 160px;" class="mt-3"><canvas id="chart-credits"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-table-cells me-2 text-primary"></i>上課時段熱區</h6>
+                        <p class="text-muted small mb-3">顏色越深代表該時段開課越多，可用來找相對空曠的時段。</p>
+                        <div id="dashboard-heatmap"></div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-scale-unbalanced me-2 text-primary"></i>各通識領域競爭程度</h6>
+                        <p class="text-muted small mb-3">
+                            平均飽和度＝該領域所有課程「登記人數 ÷ 上限人數」的平均。
+                            數字越高代表整個領域都難搶，不只是其中一兩門熱門課。
+                        </p>
+                        <div style="height: 300px;"><canvas id="chart-general-competition"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-body p-4">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-hourglass-half me-2 text-primary"></i>時段好不好選上</h6>
+                        <p class="text-muted small mb-3">
+                            各時段的平均飽和度，<strong>顏色越深代表越難搶</strong>。
+                            這裡不用中籤率是因為全校多數課不必搶，中籤率各時段都落在 88%~100%，看不出差異。
+                        </p>
+                        <div id="dashboard-period-acceptance"></div>
+                    </div>
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-3"><i class="fas fa-fire me-2 text-danger"></i>最搶手通識課</h6>
+                                <p class="text-muted small mb-2">
+                                    僅計核心通識（跨學院通識＋素養通識）。校訂必修通識是必修、沒有選擇權，不列入。
+                                </p>
+                                <div id="dashboard-hottest"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-3"><i class="fas fa-seedling me-2 text-success"></i>最好選上通識課</h6>
+                                <p class="text-muted small mb-2">
+                                    同樣僅計核心通識，並排除沒有固定上課時間的課。
+                                </p>
+                                <div id="dashboard-easiest"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-3"><i class="fas fa-chalkboard-user me-2 text-primary"></i>教師開課與熱門度</h6>
+                                <p class="text-muted small mb-3">
+                                    平均登記人數只採計開過 5 門以上的教師，樣本太少的平均值不穩定。
+                                </p>
+                                <div id="dashboard-teachers"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-body p-4">
+                                <h6 class="fw-bold mb-3"><i class="fas fa-building-columns me-2 text-primary"></i>各學院平均飽和度</h6>
+                                <p class="text-muted small mb-3">
+                                    該學院所有課程的平均搶手程度，附全英語授課比例。
+                                </p>
+                                <div id="dashboard-college-saturation"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tab-history" class="page-section d-none">
+                <div class="mb-4">
+                    <h2 class="h3 fw-bold mb-1">歷年課程資訊</h2>
+                    <p class="text-muted mb-0">查詢過往開課紀錄、選課人數趨勢，知己知彼</p>
+                </div>
+
+                <div class="card shadow-sm mb-4 border-0">
+                    <div class="card-body p-4">
+                        <div class="input-group input-group-merged">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" id="search-history-input" class="form-control ps-0" placeholder="輸入課程名稱或教師姓名...">
+                            <button id="btn-search-history" class="btn btn-primary px-4 fw-bold ms-2 rounded">
+                                搜尋
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 fw-bold text-dark border-start border-4 border-primary ps-3" id="history-search-title">
+                        搜尋結果
+                    </h5>
+                    <span class="badge bg-light text-dark border" id="history-result-count"></span>
+                </div>
+
+                <div id="history-results-container" class="row g-3">
+                    <div class="col-12 text-center py-5">
+                        <div class="text-muted opacity-50 mb-3">
+                            <i class="fas fa-chart-bar fa-4x"></i>
+                        </div>
+                        <h5 class="text-muted fw-bold">等待搜尋</h5>
+                        <p class="text-muted small">請在上列輸入關鍵字，探索課程歷史數據</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 通識課程分群分析 -->
+            <section id="tab-cluster-analysis" class="page-section d-none">
+                <div class="mb-4">
+                    <h2 class="h3 fw-bold mb-1">通識課程分群分析</h2>
+                    <p class="text-muted mb-0">基於選課行為（中籤率與飽和度）的 K-Means 分群結果</p>
+                </div>
+
+                <div class="card shadow-sm mb-4 border-0" id="cluster-analysis-section">
+                    <div class="card-body p-4">
+                        <!-- 群組定義 -->
+                        <div class="mb-4 pb-3 border-bottom">
+                            <h6 class="fw-bold mb-3 text-primary">
+                                <i class="fas fa-layer-group me-2"></i>群組定義
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="p-3 rounded h-100" style="background: rgba(87, 124, 138, 0.08); ">
+                                        <div class="fw-bold mb-1 d-flex align-items-center">
+                                            <span class="badge bg-primary me-2" style="font-size: 0.7rem;">Cluster 0</span>
+                                            <span>熱門超額</span>
+                                        </div>
+                                        <div class="small text-muted mt-2">競爭激烈，選上人數超過上限</div>
+                                        <div class="small mt-2 fw-bold text-primary">138 門</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="p-3 rounded h-100" style="background: rgba(87, 124, 138, 0.08);">
+                                        <div class="fw-bold mb-1 d-flex align-items-center">
+                                            <span class="badge bg-primary me-2" style="font-size: 0.7rem;">Cluster 1</span>
+                                            <span>冷門未滿</span>
+                                        </div>
+                                        <div class="small text-muted mt-2">選課人數少，容易選上</div>
+                                        <div class="small mt-2 fw-bold text-primary">68 門</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="p-3 rounded h-100" style="background: rgba(87, 124, 138, 0.08); ">
+                                        <div class="fw-bold mb-1 d-flex align-items-center">
+                                            <span class="badge bg-primary me-2" style="font-size: 0.7rem;">Cluster 2</span>
+                                            <span>特殊案例</span>
+                                        </div>
+                                        <div class="small text-muted mt-2">異常數據，需個別檢視</div>
+                                        <div class="small mt-2 fw-bold text-primary">1 門</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-lg-3">
+                                    <div class="p-3 rounded h-100" style="background: rgba(87, 124, 138, 0.08);">
+                                        <div class="fw-bold mb-1 d-flex align-items-center">
+                                            <span class="badge bg-primary me-2" style="font-size: 0.7rem;">Cluster 3</span>
+                                            <span>一般熱門</span>
+                                        </div>
+                                        <div class="small text-muted mt-2">中籤率中等，接近滿額</div>
+                                        <div class="small mt-2 fw-bold text-primary">204 門</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 圖表展示 -->
+                        <div class="row g-4">
+                            <!-- Chart 1: Scatter Plot -->
+                            <div class="col-md-4">
+                                <div class="text-center mb-2">
+                                    <h6 class="fw-bold mb-1" style="font-size: 0.95rem;">選課行為分布</h6>
+                                </div>
+                                <div class="text-center mb-2">
+                                    <img src="./assets/images/scatter_selection_vs_saturation.png" 
+                                         alt="Selection Rate vs Saturation Scatter Plot" 
+                                         class="img-fluid rounded shadow-sm cluster-chart-img"
+                                         style="max-width: 100%; height: auto; cursor: pointer;"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#imageViewerModal"
+                                         data-image-src="./assets/images/scatter_selection_vs_saturation.png"
+                                         data-image-title="Selection Rate vs Saturation by Cluster"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                    <div style="display:none; padding: 2rem; background: #f8f9fa; border-radius: 8px; color: #6c757d;">
+                                        <i class="fas fa-image fa-3x mb-3"></i>
+                                        <p>圖片載入失敗，請檢查路徑</p>
+                                    </div>
+                                </div>
+                                <p class="text-muted small mb-0 text-center" style="line-height: 1.5; font-size: 0.85rem;">
+                                    展示各群組在中籤率與飽和度上的分布位置
+                                </p>
+                            </div>
+                            
+                            <!-- Chart 2: Cluster Distribution -->
+                            <div class="col-md-4">
+                                <div class="text-center mb-2">
+                                    <h6 class="fw-bold mb-1" style="font-size: 0.95rem;">群組規模</h6>
+                                </div>
+                                <div class="text-center mb-2">
+                                    <img src="./assets/images/cluster_distribution.png" 
+                                         alt="Cluster Distribution Bar Chart" 
+                                         class="img-fluid rounded shadow-sm cluster-chart-img"
+                                         style="max-width: 100%; height: auto; cursor: pointer;"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#imageViewerModal"
+                                         data-image-src="./assets/images/cluster_distribution.png"
+                                         data-image-title="Cluster Distribution"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                    <div style="display:none; padding: 2rem; background: #f8f9fa; border-radius: 8px; color: #6c757d;">
+                                        <i class="fas fa-image fa-3x mb-3"></i>
+                                        <p>圖片載入失敗，請檢查路徑</p>
+                                    </div>
+                                </div>
+                                <p class="text-muted small mb-0 text-center" style="line-height: 1.5; font-size: 0.85rem;">
+                                    呈現各群組包含的課程數量
+                                </p>
+                            </div>
+                            
+                            <!-- Chart 3: Violin Plot -->
+                            <div class="col-md-4">
+                                <div class="text-center mb-2">
+                                    <h6 class="fw-bold mb-1" style="font-size: 0.95rem;">統計分布</h6>
+                                </div>
+                                <div class="text-center mb-2">
+                                    <img src="./assets/images/cluster_distribution_violin.png" 
+                                         alt="Cluster Distribution Violin Plot" 
+                                         class="img-fluid rounded shadow-sm cluster-chart-img"
+                                         style="max-width: 100%; height: auto; cursor: pointer;"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#imageViewerModal"
+                                         data-image-src="./assets/images/cluster_distribution_violin.png"
+                                         data-image-title="Distribution by Cluster"
+                                         onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                    <div style="display:none; padding: 2rem; background: #f8f9fa; border-radius: 8px; color: #6c757d;">
+                                        <i class="fas fa-image fa-3x mb-3"></i>
+                                        <p>圖片載入失敗，請檢查路徑</p>
+                                    </div>
+                                </div>
+                                <p class="text-muted small mb-0 text-center" style="line-height: 1.5; font-size: 0.85rem;">
+                                    顯示各群組的數據集中趨勢與分散程度
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="sidebarBackdrop" class="sidebar-backdrop d-md-none" aria-hidden="true" onclick="toggleSidebar()"></div>
+
+    <!-- Image Viewer Modal -->
+    <div class="modal fade" id="imageViewerModal" tabindex="-1" aria-labelledby="imageViewerModalLabel" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content bg-dark border-0">
+                <div class="modal-header border-0 p-0" style="position: absolute; top: 15px; right: 15px; z-index: 1055; background: transparent;">
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="font-size: 1.8rem; opacity: 1; filter: drop-shadow(0 0 3px rgba(0,0,0,0.5));"></button>
+                </div>
+                <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+                    <div class="text-center w-100 position-relative">
+                        <h5 class="text-white mb-3 fw-bold" id="imageViewerModalTitle" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1056; text-shadow: 0 2px 4px rgba(0,0,0,0.5);"></h5>
+                        <img id="imageViewerModalImg" src="" alt="" class="img-fluid" style="max-width: 95%; max-height: 90vh; object-fit: contain; margin-top: 60px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="courseDetailModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="courseDetailTitle">課程詳情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="courseDetailBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                    <button type="button" class="btn btn-primary" id="btn-add-to-schedule">加入課表</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="historyDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light">
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark" id="historyDetailTitle">課程詳情</h5>
+                        <p class="mb-0 text-muted small" id="historyDetailSubtitle">教師與科系資訊</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="card mb-4 border-0 shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold text-secondary mb-3">
+                                <i class="fas fa-chart-line me-2"></i>歷年人數走勢
+                            </h6>
+                            <div style="height: 250px;">
+                                <canvas id="historyDetailChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0 overflow-hidden rounded-3">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0 align-middle">
+                                    <tbody id="historyDetailTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="logicInfoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark">
+                        <i class="fas fa-info-circle me-2 text-primary"></i>系統說明：每個數字是怎麼算出來的
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+
+                    <div class="alert alert-warning small mb-3">
+                        <i class="fas fa-triangle-exclamation me-1"></i>
+                        <strong>本站為非官方的學生自製專案</strong>，與彰化師範大學沒有隸屬關係，
+                        也不是選課管道。所有數字僅供參考，實際選課與名額請以
+                        <a href="https://webap0.ncue.edu.tw/DEANV2/Other/OB010" target="_blank" rel="noopener">學校課程查詢系統</a>
+                        的公告為準。
+                    </div>
+
+                    <div class="alert alert-primary bg-primary bg-opacity-10 border-primary border-opacity-25 small mb-4">
+                        <i class="fas fa-database me-1"></i>
+                        <strong>資料來源</strong>：彰師大課程查詢系統（OB010），每日自動爬取。
+                        目前收錄 111-1 起共 9 個學期。所有數字都由這份原始資料計算，本站不做人工調整。
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="fas fa-hourglass-half me-2 text-warning"></i>先理解一件事：什麼是「已完成分發」的學期
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border small text-secondary mb-4">
+                        <p class="mb-2">
+                            預選登記進行中時，「登記人數」還在累積、「選上人數」尚未公布。
+                            這種<strong>不完整的快照</strong>若拿去算比率，中籤率會偏樂觀、飽和度會偏低。
+                        </p>
+                        <p class="mb-2">
+                            因此本站會先判斷每個學期是否已分發完畢，<strong>所有牽涉登記／選上的統計都只採計已分發的學期</strong>。
+                        </p>
+                        <div class="bg-white border rounded p-2 mb-2 font-monospace" style="font-size: 0.8rem;">
+                            該學期「選上人數總和 ÷ 上限人數總和」≧ 20% → 視為已完成分發
+                        </div>
+                        <p class="mb-0 text-muted">
+                            門檻取 20% 的理由：實測歷年已結算學期落在 64%~70%，預選中的學期是 0%~4%，
+                            中間有很大的空隙，取 20% 可以安全區隔。判定程式在
+                            <span class="font-monospace">src/api/app.py</span> 的
+                            <span class="font-monospace">get_settled_semesters()</span>。
+                        </p>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="fas fa-battery-half me-2 text-primary"></i>飽和度
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border small text-secondary mb-4">
+                        <div class="bg-white border rounded p-2 mb-2 font-monospace" style="font-size: 0.8rem;">
+                            飽和度 ＝ 登記人數 ÷ 上限人數
+                        </div>
+                        <p class="mb-2">代表這門課<strong>多少人在搶</strong>。刻意不設上限，所以會超過 100%：
+                            登記 869 人、上限 50 人就是 1738%，代表約 17 人搶 1 個位子。</p>
+                        <p class="mb-0 text-muted">
+                            課程詳情視窗裡顯示的飽和度用的是「選上人數 ÷ 上限人數」，
+                            那是<strong>實際錄取後的額滿程度</strong>，不會超過 100%，與這裡的搶手程度是兩回事。
+                        </p>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="fas fa-chart-pie me-2 text-success"></i>中籤率（選上率）
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border small text-secondary mb-4">
+                        <div class="bg-white border rounded p-2 mb-2 font-monospace" style="font-size: 0.8rem;">
+                            單一學期中籤率 ＝ min( 1 , 上限人數 ÷ 登記人數 )<br>
+                            顯示的中籤率 ＝ 該課歷年各學期中籤率的<strong>平均</strong>
+                        </div>
+                        <ul class="mb-2 ps-3">
+                            <li>同一門課以「課程名稱 ＋ 教師姓名」為單位歸戶，換老師會視為不同的課。</li>
+                            <li>登記人數少於上限時中籤率就是 100%（人人都上得了）。</li>
+                            <li>只採計已完成分發的學期；登記人數為 0 的紀錄會排除。</li>
+                            <li>新開課程沒有歷年紀錄，會顯示「無選上率資料」而非猜一個數字。</li>
+                        </ul>
+                        <p class="mb-0 text-muted">
+                            排序「最好選上」是中籤率由高到低，「最搶手」是由低到高；
+                            兩者都把無歷年資料的課排到最後。
+                        </p>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="fas fa-star me-2 text-primary"></i>推薦分數（0～100）
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border small text-secondary mb-4">
+                        <p class="mb-2">回答的問題是「<strong>這門課我選不選得上</strong>」，不是「這門課好不好」——
+                            本站沒有課程評價資料，不會假裝有。</p>
+                        <div class="table-responsive mb-2">
+                            <table class="table table-sm table-bordered bg-white mb-0" style="font-size: 0.8rem;">
+                                <thead><tr><th>權重</th><th>項目</th><th>怎麼算</th></tr></thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-center fw-bold">60</td>
+                                        <td>選上機率</td>
+                                        <td>優先用歷年中籤率；沒有歷年資料才退而用本學期「上限 ÷ 登記」推估（且僅限已分發學期）；兩者都沒有時給中性值 50%</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center fw-bold">25</td>
+                                        <td>目前空額</td>
+                                        <td>(上限人數 − 登記人數) ÷ 上限人數</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-center fw-bold">15</td>
+                                        <td>學分符合度</td>
+                                        <td>該課學分 ≦（目標學分 − 已選學分）給滿分，否則 0；未設目標學分時不計入</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <ul class="mb-2 ps-3">
+                            <li><strong>衝堂的課不會被刪掉</strong>（你可能想換掉舊課），但分數乘以 0.4 排到後面。</li>
+                            <li>分數相同時，登記人數多的排前面——同樣選得上的前提下，別人也想修的課比較值得看。</li>
+                        </ul>
+                        <p class="mb-0 text-muted">
+                            每張課程卡片的分數徽章都可以停留看到該課的實際計算依據，
+                            點「詳情」也會逐項列出。
+                        </p>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="fas fa-table-cells me-2 text-primary"></i>統計儀表板的幾張圖
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border small text-secondary mb-4">
+                        <ul class="mb-0 ps-3 d-flex flex-column gap-2">
+                            <li><strong>上課時段熱區</strong>：該時段<strong>開了幾門課</strong>，看的是課程密度。</li>
+                            <li><strong>時段好不好選上</strong>：該時段所有課的<strong>平均飽和度</strong>，數字越高越難搶。
+                                這裡不用中籤率，因為全校多數課根本不必搶，中籤率各時段都落在 88%~100%，整張圖會是同一個顏色。</li>
+                            <li><strong>各通識領域競爭程度</strong>：該領域所有課程飽和度的平均。
+                                用平均而非總人數，否則開課多的領域會單純因為量大而看起來熱門。</li>
+                            <li><strong>最搶手／最好選上通識課</strong>：只採計核心通識（跨學院通識＋素養通識）。
+                                校訂必修通識是必修、沒有選擇權，列進來沒有參考價值。
+                                另外排除上限人數低於 10 人的課（如個別指導，比率會失真）與沒有固定上課時間的課。
+                                同一門課跨學期只取最具代表性的一筆。</li>
+                            <li><strong>教師平均登記人數</strong>：只採計開過 5 門以上的教師，樣本太少平均值不穩定。
+                                論文類課程的教師欄位在原始資料裡填的是「論文」而非人名，已排除。</li>
+                            <li><strong>各學院平均飽和度</strong>：只計真正的學院。原始資料的「學院」欄位混了
+                                通識教育中心、語文中心、進修推廣部等非學院單位，那些課請改用「全校性課程」或「通識類別」查詢。</li>
+                        </ul>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="fas fa-filter me-2 text-primary"></i>兩個容易誤解的篩選
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border small text-secondary mb-4">
+                        <p class="mb-2">
+                            <strong>「全校性課程」與「通識類別」互斥。</strong>
+                            兩者是同一件事的粗細兩種切法：跨學院通識與素養通識本來就是核心通識的子集，
+                            而校訂必修通識掛在各系班級下、開課班別不是核心通識——
+                            兩個同時選會出現交集為 0 的空結果，所以選了一個會自動清掉另一個。
+                        </p>
+                        <p class="mb-0">
+                            <strong>「跨學院通識不能選本院開的課」是看課程性質，不是看學院欄位。</strong>
+                            所有核心通識課的學院都是「通識教育中心」，拿學生的學院去比對永遠不會相等。
+                            真正帶領域資訊的是後綴：<span class="font-monospace">跨學院通識(文)</span> 就是文學院開設的。
+                        </p>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="fas fa-chart-line me-2 text-danger"></i>爆滿機率與預估中籤率（中籤預測模型）
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border small text-secondary mb-4">
+                        <p class="mb-2">
+                            和上面的「歷年平均中籤率」不同，這是一個機器學習模型對<strong>這學期</strong>的預測：
+                            依課程清單（上限、時段、類別、備註）與<strong>這學期以前</strong>的登記紀錄，
+                            估計登記人數會不會超過上限（爆滿機率），以及預估中籤率與 80% 區間。
+                        </p>
+                        <div id="model-info-body"><span class="text-muted">載入模型驗證資料中…</span></div>
+                        <p class="mb-0 mt-2 text-muted">
+                            方法、防洩漏測試與限制見 <span class="font-monospace">docs/AI_FEATURES.md</span>；
+                            模型在 <span class="font-monospace">src/ml/</span>。
+                        </p>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="fas fa-bell me-2 text-primary"></i>缺額監控
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border small text-secondary mb-0">
+                        <p class="mb-2">
+                            這是<strong>唯一即時連線學校系統</strong>的功能，其餘頁面都讀每日爬取的快取資料。
+                            缺額是會秒變的資料，用快取回答只會給出過期答案。
+                        </p>
+                        <p class="mb-0 text-muted">
+                            伺服器端有 45 秒快取避免重複查詢對學校站台造成負擔，單次最多查 12 門。
+                            關掉網頁後就不會再檢查；需要持續通知請使用 LINE 推播版本
+                            （<span class="font-monospace">ncue-course-monitor</span>，每 10 分鐘自動檢查）。
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="settingsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-sliders-h me-2 text-primary"></i>系統設定
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small text-uppercase ls-1 mb-3">介面主題</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="theme-options" id="theme-light" value="light" checked>
+                                <label class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2 py-2" for="theme-light">
+                                    <i class="fas fa-sun"></i> 亮色模式
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="theme-options" id="theme-dark" value="dark">
+                                <label class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2 py-2" for="theme-dark">
+                                    <i class="fas fa-moon"></i> 深色模式
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-secondary small text-uppercase ls-1 mb-3">課表預設檢視</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="view-options" id="view-table" value="table" checked>
+                                <label class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2 py-2" for="view-table">
+                                    <i class="fas fa-table"></i> 表格檢視
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <input type="radio" class="btn-check" name="view-options" id="view-cards" value="cards">
+                                <label class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2 py-2" for="view-cards">
+                                    <i class="fas fa-th-large"></i> 卡片檢視
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <div class="pt-3 border-top">
+                        <label class="form-label fw-bold text-danger small text-uppercase ls-1 mb-3">進階操作</label>
+                        <button id="btn-reset-app" class="btn btn-outline-danger w-100 text-start">
+                            <i class="fas fa-exclamation-triangle me-2"></i> 重置所有資料 (清除快取)
+                        </button>
+                        <div class="form-text mt-2 small">這將清除所有已選課程與設定，還原至初始狀態。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <!-- Image Viewer Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageViewerModal = document.getElementById('imageViewerModal');
+            const modalImg = document.getElementById('imageViewerModalImg');
+            const modalTitle = document.getElementById('imageViewerModalTitle');
+            
+            if (!imageViewerModal || !modalImg) {
+                console.error('Image viewer modal elements not found');
+                return;
+            }
+            
+            let bsModalInstance = null;
+            
+            // 使用 Bootstrap 5 的事件监听方式
+            imageViewerModal.addEventListener('show.bs.modal', function(event) {
+                // 修复 aria-hidden 警告
+                imageViewerModal.setAttribute('aria-hidden', 'false');
+                
+                // 获取触发模态框的图片元素
+                const triggerImg = event.relatedTarget || document.querySelector('.cluster-chart-img:focus');
+                
+                if (triggerImg) {
+                    const imageSrc = triggerImg.getAttribute('data-image-src') || triggerImg.src;
+                    const imageTitle = triggerImg.getAttribute('data-image-title') || triggerImg.alt;
+                    
+                    if (imageSrc && modalImg) {
+                        modalImg.src = imageSrc;
+                        modalImg.alt = imageTitle || 'Chart Image';
+                        if (modalTitle) {
+                            modalTitle.textContent = imageTitle || '';
+                        }
+                    }
+                }
+            });
+            
+            // 模态框完全隐藏后的事件
+            imageViewerModal.addEventListener('hidden.bs.modal', function(event) {
+                // 确保 aria-hidden 恢复
+                imageViewerModal.setAttribute('aria-hidden', 'true');
+                
+                // 强制移除可能残留的 backdrop
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(function(backdrop) {
+                    backdrop.remove();
+                });
+                
+                // 移除 body 上的 modal-open class
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+            });
+            
+            // 處理所有圖片的點擊事件
+            document.querySelectorAll('.cluster-chart-img').forEach(function(img) {
+                img.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const imageSrc = this.getAttribute('data-image-src') || this.src;
+                    const imageTitle = this.getAttribute('data-image-title') || this.alt;
+                    
+                    if (imageSrc && modalImg) {
+                        modalImg.src = imageSrc;
+                        modalImg.alt = imageTitle || 'Chart Image';
+                        if (modalTitle) {
+                            modalTitle.textContent = imageTitle || '';
+                        }
+                        
+                        // 使用 Bootstrap 5 的方式显示模态框
+                        if (!bsModalInstance) {
+                            bsModalInstance = new bootstrap.Modal(imageViewerModal, {
+                                backdrop: true,
+                                keyboard: true
+                            });
+                        }
+                        bsModalInstance.show();
+                    }
+                });
+            });
+            
+            // ESC 鍵關閉
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && bsModalInstance) {
+                    const isShown = imageViewerModal.classList.contains('show');
+                    if (isShown) {
+                        bsModalInstance.hide();
+                    }
+                }
+            });
+        });
+    </script>
+    
+    <script type="module" src="assets/js/main.js"></script>
+</body>
+</html>

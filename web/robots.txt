@@ -1,0 +1,11 @@
+# 全站開放索引。資料每日由 GitHub Actions 重新建置後部署。
+User-agent: *
+Allow: /
+
+# 即時缺額會即時連線學校站台，沒有必要讓爬蟲反覆觸發
+Disallow: /api/
+
+# 課程資料是給前端載入用的 JSON，不是給搜尋引擎讀的內容
+Disallow: /data/
+
+Sitemap: https://course.sekinv.com/sitemap.xml

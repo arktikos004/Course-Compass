@@ -1,0 +1,57 @@
+name: NCUE Course Monitor
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'   # 每 10 分鐘（GitHub 排程為 best-effort，實際間隔可能更長）
+  workflow_dispatch:          # 允許手動從網頁點擊執行
+
+concurrency:
+  group: course-monitor
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    # 網路最壞情況約 8 分鐘（2 門課 × 2 請求 × 3 次嘗試 × 40 秒連線逾時）加上
+    # job 開銷約 1 分鐘。留到 12 分鐘，讓「站台全掛」那一輪能跑完並正常 exit 0，
+    # 而不是被砍成紅燈——那正是這次要消除的雜訊。預設 360 分鐘則會讓卡死的
+    # run 霸佔 concurrency 名額長達 6 小時。
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r ncue-course-monitor/requirements.txt
+
+      # 跨執行保留缺額狀態，避免有缺額時每輪都重複推播。
+      # cache 內容不可覆寫，故以 run_id 當 key、用 restore-keys 取回最近一次。
+      - name: Restore monitor state
+        uses: actions/cache/restore@v4
+        with:
+          path: ncue-course-monitor/state.json
+          key: monitor-state-${{ github.run_id }}
+          restore-keys: monitor-state-
+
+      - name: Run monitor script
+        working-directory: ncue-course-monitor
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+          TARGET_YEAR: '115'
+          TARGET_SEMESTER: '1'
+          TARGET_COURSES: '54019,00342'
+        run: python main.py
+
+      - name: Save monitor state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ncue-course-monitor/state.json
+          key: monitor-state-${{ github.run_id }}

@@ -1,0 +1,9 @@
+# Cloudflare Pages 設定
+#
+# 網站是全靜態的：課程資料、篩選選項與統計都由 scripts/build_static.py 在建置期
+# 產生成 JSON，篩選與評分在瀏覽器執行。functions/ 下只有一支即時缺額代理，
+# 因為那是唯一無法用每日快取回答的資料。
+
+name = "course-compass"
+pages_build_output_dir = "web"
+compatibility_date = "2026-08-01"

@@ -1,0 +1,67 @@
+name: Build and Deploy to Cloudflare Pages
+
+# 每天爬完最新課程資料後重新建置並部署。
+# 網站是全靜態的：篩選與評分在瀏覽器執行，所以「部署」就是把
+# 產生好的 JSON 與前端檔案推上 Cloudflare Pages。
+on:
+  workflow_run:
+    workflows: ["Update Course Data"]
+    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'functions/**'
+      - 'src/api/**'
+      - 'scripts/build_static.py'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # 排程觸發時，只有在爬蟲成功後才部署，避免把失敗的資料推上線
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 後端邏輯仍是靜態資料與對照樣本的來源，壞掉就不該部署
+      - name: Run backend tests
+        run: python -m unittest discover -s tests
+
+      - name: Build static data bundle
+        run: python scripts/build_static.py
+
+      # 確認瀏覽器端的查詢引擎與 Python 實作結果仍然一致。
+      # 這一步是移植後最重要的防線：行為飄移不會有錯誤訊息，只能靠比對。
+      - name: Verify JS/Python parity
+        run: |
+          python scripts/build_fixtures.py
+          node tests/parity.mjs
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy web --project-name=course-compass

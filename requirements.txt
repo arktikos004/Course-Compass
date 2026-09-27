@@ -1,0 +1,9 @@
+requests==2.31.0
+beautifulsoup4==4.12.2
+# 直接相依：ncue_client 用 urllib3.util.Retry 做連線層重試（allowed_methods 需 >=1.26）
+urllib3==2.6.3
+lxml==4.9.3
+pandas==2.1.4
+fastapi==0.104.1
+uvicorn==0.24.0
+pydantic==2.5.0

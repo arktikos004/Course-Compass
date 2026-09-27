@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="7" fill="#577C8A"/>
+  <!-- 課表格線：兩欄三列，縮到 16px 仍能辨識 -->
+  <g fill="#fff">
+    <rect x="7"  y="8"  width="7" height="4" rx="1"/>
+    <rect x="18" y="8"  width="7" height="4" rx="1" opacity=".55"/>
+    <rect x="7"  y="14" width="7" height="4" rx="1" opacity=".55"/>
+    <rect x="18" y="14" width="7" height="4" rx="1"/>
+    <rect x="7"  y="20" width="7" height="4" rx="1"/>
+    <rect x="18" y="20" width="7" height="4" rx="1" opacity=".55"/>
+  </g>
+</svg>

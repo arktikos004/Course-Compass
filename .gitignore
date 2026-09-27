@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Data files (optional - uncomment if you don't want to track data)
+# raw_data/
+# processed_data/
+# dict/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project specific
+*.csv.bak
+*.tmp
+
+# 缺額監控的執行期狀態（由 GitHub Actions cache 保存，不進版控）
+ncue-course-monitor/state.json
+
+# 靜態網站的資料包由 scripts/build_static.py 從 data/processed 產生（約 17 MB），
+# 每次建置都會重新生成，不進版控。CI 在部署前會自己跑一次。
+web/data/
+
+# wrangler 的本地開發快取與狀態
+.wrangler/
+
+# 教學大綱 PDF 與向量索引（約 350 MB，可用 fetch-syllabi / build-index 重建）
+data/syllabus/
+# 中籤模型的本機快取：pickle 無法跨 numpy 大版本，需要時會依 meta 自動重訓
+data/models/demand_model.joblib
