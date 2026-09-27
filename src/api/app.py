@@ -742,7 +742,8 @@ async def get_departments(year: Optional[int] = None, semester: Optional[int] = 
 # AI 功能（本機版）：中籤預測說明、選課助理、教學大綱搜尋與問答
 #
 # 正式網站是 Cloudflare Pages 全靜態部署，沒有這些端點——中籤預測在建置期寫進
-# 靜態資料包，選課助理與大綱問答需要本機的 Ollama，只在 python main.py api 時可用。
+# 靜態資料包，選課助理與大綱問答需要 Python 後端（接雲端 API 或本機 Ollama），
+# 只在 python main.py api 時可用。
 # 前端先打 /api/ai/status，拿不到就把這兩個功能標成「本機版限定」。
 # ============================================================================
 

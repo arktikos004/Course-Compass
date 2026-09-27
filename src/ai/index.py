@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 
-from config import EMBED_MODEL, SYLLABUS_DIR
+from config import SYLLABUS_DIR
 
 from .syllabus import chunk_text, clean_text, extract_text, manifest_path, pdf_dir
 
@@ -71,10 +71,9 @@ class SyllabusIndex:
             if (i // BATCH) % 20 == 0:
                 log.info("embedding %d/%d", min(i + BATCH, len(inputs)), len(inputs))
         vectors = _normalize(np.asarray(vecs, dtype=np.float32))
-        provider = "mock" if getattr(client, "name", "").startswith("mock") else "ollama"
         info = {
-            "year": year, "semester": semester, "provider": provider,
-            "embed_model": EMBED_MODEL if provider == "ollama" else "mock-char-bigram",
+            "year": year, "semester": semester, "provider": client.provider,
+            "embed_model": client.embed_model,
             "dim": int(vectors.shape[1]), "n_chunks": int(len(meta)), "n_courses": int(meta[["code", "serial"]].drop_duplicates().shape[0]),
             "built_at": datetime.now().isoformat(timespec="seconds"),
         }
@@ -94,6 +93,9 @@ class SyllabusIndex:
         if client is None:
             from .llm import get_client
             client = get_client(info["provider"], fallback=False)
+            if client.embed_model != info["embed_model"]:
+                raise RuntimeError(f"索引是用 {info['embed_model']} 建的，目前設定的是 {client.embed_model or '（未設定）'}，"
+                                   "向量空間不一致；請重新執行 python main.py build-index")
         meta = pd.read_csv(p["meta"], encoding="utf-8-sig", dtype={"code": str})
         return cls(np.load(p["vec"]), meta, info, client)
 

@@ -14,7 +14,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from config import DOCS_DIR, PROJECT_ROOT
+from config import AI_PROVIDER, DOCS_DIR, PROJECT_ROOT
 
 from .agent import run_agent
 from .context import build_context
@@ -27,6 +27,7 @@ QUERIES = PROJECT_ROOT / "data" / "eval" / "agent_queries.json"
 
 def evaluate_provider(provider: str, queries: List[Dict[str, Any]], ctx) -> pd.DataFrame:
     client = get_client(provider, fallback=False)
+    label = f"{provider} · {client.model}" if hasattr(client, "model") else provider
     rows = []
     for i, item in enumerate(queries):
         expect = item["expect"]
@@ -38,7 +39,7 @@ def evaluate_provider(provider: str, queries: List[Dict[str, Any]], ctx) -> pd.D
             checks = course_satisfies(c, expect, ctx.pred(c))
             sats.append(all(checks.values()) if checks else True)
         rows.append({
-            "id": i + 1, "query": item["q"], "provider": provider,
+            "id": i + 1, "query": item["q"], "provider": label,
             "n_suggested": len(res["courses"]), "n_hallucinated": len(res["dropped"]),
             "n_satisfying": sum(sats), "feasible": oracle > 0,
             "tools": " → ".join(t["tool"] for t in res["tool_trace"]),
@@ -68,7 +69,7 @@ def main(providers: List[str] = None):
     setup_logging()
     queries = json.loads(QUERIES.read_text(encoding="utf-8"))
     ctx = build_context()
-    providers = providers or ["mock", "ollama"]
+    providers = providers or ["mock"] + ([AI_PROVIDER] if AI_PROVIDER != "mock" else [])
     results, summaries = [], {}
     for p in providers:
         try:
@@ -77,8 +78,9 @@ def main(providers: List[str] = None):
             print(f"跳過 {p}：{e}")
             continue
         results.append(df)
-        summaries[p] = summarize(df)
-        print(p, json.dumps(summaries[p], ensure_ascii=False))
+        label = df["provider"].iloc[0]
+        summaries[label] = summarize(df)
+        print(label, json.dumps(summaries[label], ensure_ascii=False))
     if not results:
         return
     all_df = pd.concat(results)
@@ -161,7 +163,7 @@ def main_rag():
     ]
     if info["provider"] == "mock":
         lines.append("> ⚠️ 本次索引使用離線 mock embedding（字元雜湊），**沒有語意能力**，數字只證明流程可運作；"
-                     "要評估真正的語意搜尋，請安裝 Ollama 並 `ollama pull bge-m3` 後重建索引再跑。")
+                     "要評估真正的語意搜尋，請在 .env 設定 `LLM_API_EMBED_MODEL`（或安裝 Ollama 並 `ollama pull bge-m3`）後重建索引再跑。")
     lines += ["", "| 方法 | P@5 | P@10 | Hit@5 | MRR |", "|---|---|---|---|---|"]
     for m, r in summary.iterrows():
         lines.append(f"| {m} | {r['p@5']:.3f} | {r['p@10']:.3f} | {r['hit@5']:.3f} | {r['mrr']:.3f} |")

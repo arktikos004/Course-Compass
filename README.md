@@ -173,7 +173,7 @@ python main.py api
 - **中籤預測**（AI）：查詢結果與課程詳情顯示爆滿機率、預估中籤率與 80% 區間；
   預測在建置期寫進靜態資料包，正式網站就看得到
 - **選課助理**、**問大綱**（AI，本機版）：用一句話描述需求、針對課程大綱提問；
-  需要本機的 Ollama，正式網站會顯示本機版說明
+  需要本機的 Python 後端，語言模型接雲端 API（`.env` 填金鑰）或本機 Ollama，正式網站會顯示本機版說明
 - 學年度與學期選單由 `/api/semesters` 動態產生，新學期上線不必改前端
 - 仍在預選登記中的學期會標示「預選登記中」，並自動排除於中籤率／飽和度統計外
 
@@ -190,7 +190,8 @@ pip install -r requirements.txt -r requirements-ai.txt   # AI 套件與核心分
 python main.py train-demand      # 重訓中籤預測 → data/models/、docs/demand_model_report.md
 python main.py predict-demand    # 新學期公告後，用凍結模型補上預測（不重訓）
 python main.py fetch-syllabi     # 下載當學期教學大綱 PDF（data/syllabus/，不進版控）
-python main.py build-index       # 建立大綱索引（需 ollama pull bge-m3；沒有 Ollama 時用離線 mock）
+cp .env.example .env             # 選課助理接雲端 API：填 LLM_API_KEY（不用在本機跑模型）
+python main.py build-index       # 建立大綱索引（用 API 或 Ollama 的 embedding；都沒有時用離線 mock）
 python scripts/build_static.py && python main.py api   # 本機完整版：http://localhost:8000
 ```
 

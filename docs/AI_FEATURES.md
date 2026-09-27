@@ -5,8 +5,8 @@
 | 功能 | 正式網站（靜態） | 本機版（`python main.py api`） | 技術 | 報告 |
 |---|---|---|---|---|
 | 中籤預測 | ✅ 建置期寫進資料包 | ✅ | HistGradientBoosting＋conformal 區間＋isotonic 校準 | `docs/demand_model_report.md`、`docs/test_set_ledger.md` |
-| 選課助理 | 顯示本機版說明 | ✅ | 本機 Ollama（qwen2.5:7b）tool calling；沒有 Ollama 時改用離線規則模式 | `docs/agent_eval.md` |
-| 教學大綱搜尋與問答 | 不顯示 | ✅ | PDF 文字層 → 段落切塊 → bge-m3 向量與字元 TF-IDF 混合搜尋 | `docs/rag_eval.md` |
+| 選課助理 | 顯示本機版說明 | ✅ | LLM tool calling：雲端 OpenAI 相容 API 或本機 Ollama（qwen2.5:7b）；兩者都沒有時改用離線規則模式 | `docs/agent_eval.md` |
+| 教學大綱搜尋與問答 | 不顯示 | ✅ | PDF 文字層 → 段落切塊 → embedding 向量（API 或 bge-m3）與字元 TF-IDF 混合搜尋 | `docs/rag_eval.md` |
 
 **為什麼分成兩種部署**：網站以 Cloudflare Pages 全靜態方式部署（見 `wrangler.toml`），沒有伺服器可以跑語言模型。
 - **中籤預測**：預測可以事先算好，由 `scripts/build_static.py` 讀取 `data/models/demand_predictions.csv`，寫進每門課的 `admission_pred`。CI 不需要安裝 scikit-learn。
@@ -66,6 +66,11 @@
 
 ## 2. 選課助理（本機版）
 
+**語言模型來源**（`src/ai/llm.py`，三者介面相同，代理迴圈不用改）：
+- **雲端 API**（`AI_PROVIDER=api`）：任何 OpenAI 相容服務（Gemini、OpenAI、Groq、OpenRouter…），在 `.env` 填金鑰與模型名稱，範本見 `.env.example`。本機不用跑模型，一般筆電就能用。有填 `LLM_API_KEY` 時預設走這個。
+- **本機 Ollama**（`AI_PROVIDER=ollama`）：qwen2.5:7b，資料不離開電腦，但需要能跑 7B 模型的機器。
+- **離線規則模式**（`AI_PROVIDER=mock`）：上面兩個都連不上時自動改用，見下方評估。
+
 **流程**：
 1. 使用者輸入一句話，例如「週五不要有課、2 學分通識、跟資料分析有關、不要太難搶」。
 2. LLM 自行決定呼叫哪些工具，最多 5 輪。可用的工具有：
@@ -86,8 +91,9 @@
 |---|---|---|---|---|
 | 離線規則模式 | 86.2% | 80.8% | 0% | 0% |
 | qwen2.5:7b（Ollama） | **尚未評估**：開發環境沒有安裝 Ollama | | | |
+| 雲端 API | **尚未評估**：需要先在 `.env` 設定金鑰 | | | |
 
-規則模式的失誤集中在它不認得的說法，例如「只有週三下午有空」「星期二」「不會爆滿」。裝好 Ollama 後執行 `python main.py eval-agent`，就會兩種一起比較。
+規則模式的失誤集中在它不認得的說法，例如「只有週三下午有空」「星期二」「不會爆滿」。設定好 API 金鑰（或裝好 Ollama）後執行 `python main.py eval-agent`，會把目前設定的模型和規則模式一起比較，表格會標出實際用的模型名稱。
 
 ## 3. 教學大綱搜尋與問答（本機版）
 
@@ -108,7 +114,8 @@
     | 純向量（mock） | 0.467 | 0.427 | 0.867 | 0.648 |
     | 基線：整篇字面 TF-IDF | **0.773** | **0.707** | 0.933 | **0.842** |
 
-  - **離線模式下，混合搜尋並沒有勝過字面基線**：只有 Hit@5 較好，P@5、P@10 基線較好。要驗證語意能力，需要安裝 Ollama、`ollama pull bge-m3`、重建索引，再跑 `python main.py eval-rag`。
+  - **離線模式下，混合搜尋並沒有勝過字面基線**：只有 Hit@5 較好，P@5、P@10 基線較好。要驗證語意能力，需要在 `.env` 設定 `LLM_API_EMBED_MODEL`（或安裝 Ollama 並 `ollama pull bge-m3`）、重建索引，再跑 `python main.py eval-rag`。
+  - 索引會記住建立時用的 embedding 模型；之後換了模型，載入時會要求重建，避免新舊向量混用。
 
 ---
 
@@ -120,18 +127,23 @@ python main.py train-demand          # walk-forward 評估＋訓練凍結模型�
 python main.py predict-demand        # 新學期：用凍結模型補上預測（不重訓）
 # python main.py eval-holdout        # 在保留學期上計算指標，每次都會記入 test_set_ledger.md
 
-# 選課助理與大綱搜尋需要本機 Ollama（https://ollama.com/download）
-ollama pull qwen2.5:7b && ollama pull bge-m3
+# 選課助理與大綱搜尋的語言模型：擇一
+cp .env.example .env                 # (a) 雲端 API：填 LLM_API_KEY 等四行，不用在本機跑模型
+ollama pull qwen2.5:7b && ollama pull bge-m3   # (b) 本機 Ollama（https://ollama.com/download）
+
 python main.py fetch-syllabi         # 下載當學期大綱（約 1,700 份，需時 1～2 小時）
 python main.py build-index           # 建立大綱向量索引
 python main.py eval-agent && python main.py eval-rag
 
 python scripts/build_static.py && python main.py api    # http://localhost:8000
-AI_PROVIDER=mock python main.py api                       # 沒有 Ollama 時用離線規則模式
+AI_PROVIDER=mock python main.py api                       # 沒有金鑰也沒有 Ollama 時用離線規則模式
 python -m unittest discover -s tests                      # 70 項測試（7 項需要 scikit-learn）
 ```
 
 ## 生成式 AI 使用說明（競賽申報用）
 
-- **系統內**：選課助理與大綱問答使用本機開源模型 qwen2.5:7b（Ollama），向量搜尋使用 bge-m3。課程資料不會送到雲端。
+- **系統內**：選課助理與大綱問答可以接兩種語言模型，依部署設定而定：
+  - **雲端 API**（OpenAI 相容服務，模型名稱記在 `.env`）：使用者的提問、查課工具回傳的課程資料、相關的大綱段落會送到該服務商。課程資料本身是學校公開資訊，「我的課表」會以課名、課程代碼與上課時段的形式放進提示。
+  - **本機 Ollama**（開源模型 qwen2.5:7b，向量搜尋用 bge-m3）：資料不會離開電腦。
+  - 申報時請寫明實際評估與展示時用的是哪一個模型。
 - **開發過程**：程式撰寫與文件整理有使用 AI 程式助理（Claude Code）協助。模型設計、驗證結果與限制，都以本文件所列、可重跑的腳本與測試為準。

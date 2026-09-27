@@ -23,7 +23,7 @@ for path in (str(ROOT), str(ROOT / "src")):
         sys.path.insert(0, path)
 
 from ai.agent import run_agent  # noqa: E402
-from ai.llm import MockClient  # noqa: E402
+from ai.llm import ApiClient, LLMUnavailable, MockClient  # noqa: E402
 from ai.parse import course_satisfies, parse_request  # noqa: E402
 from ai.syllabus import chunk_text, clean_text, split_sections  # noqa: E402
 from ai.tools import CourseContext, check_schedule_conflict, find_courses, run_tool  # noqa: E402
@@ -298,6 +298,67 @@ class TestAgent(unittest.TestCase):
         ctx = semester_context()
         self.assertIn("error", run_tool(ctx, "rm_rf", {}))
         self.assertIn("error", run_tool(ctx, "find_courses", {"limit": "not-a-number"}))
+
+
+class _Obj:
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
+
+
+def _reply(content="", tool_calls=()):
+    calls = [_Obj(function=_Obj(name=n, arguments=json.dumps(a))) for n, a in tool_calls]
+    return _Obj(choices=[_Obj(message=_Obj(content=content, tool_calls=calls or None))])
+
+
+class _BadRequest(Exception):
+    status_code = 400
+
+
+class StubOpenAI:
+    """假的 OpenAI SDK：記下每次送出的參數，依序回傳預先寫好的回覆，不連網"""
+
+    def __init__(self, replies, reject_json_schema=False):
+        self.replies, self.sent, self.reject = list(replies), [], reject_json_schema
+        self.chat = _Obj(completions=_Obj(create=self._create))
+
+    def _create(self, **kwargs):
+        self.sent.append(kwargs)
+        if self.reject and kwargs.get("response_format", {}).get("type") == "json_schema":
+            raise _BadRequest("json_schema not supported")
+        return self.replies.pop(0)
+
+
+class TestApiClient(unittest.TestCase):
+    def test_agent_loop_over_openai_format(self):
+        ctx = semester_context()
+        real = next(iter(ctx._by_key))
+        stub = StubOpenAI([
+            _reply(tool_calls=[("find_courses", {"limit": 3})]),
+            _reply(),
+            _reply(json.dumps({"reply": "ok", "suggestions": [{"code": real[0], "serial": real[1], "reason": "r"}]})),
+        ])
+        client = ApiClient(api_key="test", model="m", client=stub)
+        res = run_agent([{"role": "user", "content": "隨便推薦"}], ctx, client)
+        self.assertEqual([c["課程代碼"] for c in res["courses"]], [real[0]])
+
+        # 第二次請求：assistant 的 tool_calls 要有 id、arguments 是字串，tool 訊息用 tool_call_id 對應
+        msgs = stub.sent[1]["messages"]
+        call = next(m for m in msgs if m["role"] == "assistant")["tool_calls"][0]
+        tool = next(m for m in msgs if m["role"] == "tool")
+        self.assertEqual(tool["tool_call_id"], call["id"])
+        self.assertEqual(json.loads(call["function"]["arguments"]), {"limit": 3})
+        self.assertEqual(stub.sent[2]["response_format"]["type"], "json_schema")
+
+    def test_falls_back_to_json_object_and_strips_code_fence(self):
+        stub = StubOpenAI([_reply('```json\n{"answer": "a", "cited": [1]}\n```')], reject_json_schema=True)
+        client = ApiClient(api_key="test", model="m", client=stub)
+        out = client.chat([{"role": "user", "content": "q"}], format={"type": "object"})
+        self.assertEqual(json.loads(out["content"]), {"answer": "a", "cited": [1]})
+        self.assertEqual(stub.sent[-1]["response_format"], {"type": "json_object"})
+
+    def test_missing_key_is_unavailable(self):
+        with self.assertRaises(LLMUnavailable):
+            ApiClient(api_key="", model="m", client=StubOpenAI([]))
 
 
 class TestChatEndpoint(unittest.TestCase):

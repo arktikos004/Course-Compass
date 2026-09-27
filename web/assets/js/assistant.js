@@ -1,7 +1,7 @@
 /**
  * 選課助理分頁＋課程詳情中的「問這門課的大綱」
  *
- * 這兩個功能需要本機的 Python API 與 Ollama（python main.py api），正式網站是全靜態部署、
+ * 這兩個功能需要本機的 Python API（python main.py api，語言模型接雲端 API 或本機 Ollama），正式網站是全靜態部署、
  * 沒有這些端點。載入時先打 /api/ai/status 判斷：Cloudflare Pages 找不到路徑時會回首頁
  * （200 + HTML），所以必須確認拿到的是 JSON 且 available=true，不能只看狀態碼。
  * LLM 產生的文字一律跳脫後再放進 DOM。
@@ -143,12 +143,12 @@ function renderUnavailable() {
     logEl().innerHTML = `
         <div class="assistant-empty small">
             <div class="fw-bold mb-1"><i class="fas fa-laptop-code me-1"></i>選課助理是本機版功能</div>
-            <div class="text-muted">它需要在自己的電腦上執行語言模型（Ollama），正式網站是純靜態頁面，無法提供。
-            在專案資料夾執行：</div>
+            <div class="text-muted">它需要在自己的電腦上執行 Python 後端，正式網站是純靜態頁面，無法提供。
+            語言模型可以接雲端 API（在 .env 填金鑰），不用在本機跑模型。在專案資料夾執行：</div>
             <pre class="assistant-cmd mt-2 mb-0">pip install -r requirements.txt -r requirements-ai.txt
-ollama pull qwen2.5:7b &amp;&amp; ollama pull bge-m3
+cp .env.example .env   # 填入 LLM_API_KEY
 python scripts/build_static.py &amp;&amp; python main.py api</pre>
-            <div class="text-muted mt-2">再打開 http://localhost:8000。沒有 Ollama 時會自動改用離線規則模式。
+            <div class="text-muted mt-2">再打開 http://localhost:8000。沒有金鑰也沒有 Ollama 時，會自動改用離線規則模式。
             中籤預測不需要本機版，查詢結果上就看得到。</div>
         </div>`;
 }

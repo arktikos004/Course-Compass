@@ -1,4 +1,4 @@
-"""LLM 用戶端：本機 Ollama，或離線的規則式替身（MockClient）。
+"""LLM 用戶端：雲端的 OpenAI 相容 API、本機 Ollama，或離線的規則式替身（MockClient）。
 
 介面統一為：
     chat(messages, tools=None, format=None) -> {"content": str, "tool_calls": [{"name": str, "arguments": dict}]}
@@ -13,7 +13,8 @@ import math
 import re
 from typing import Any, Dict, List, Optional
 
-from config import AI_PROVIDER, CHAT_MODEL, EMBED_MODEL, OLLAMA_HOST, OLLAMA_TIMEOUT
+from config import (AI_PROVIDER, CHAT_MODEL, EMBED_MODEL, LLM_API_BASE, LLM_API_CHAT_MODEL, LLM_API_EMBED_MODEL,
+                    LLM_API_KEY, LLM_API_TIMEOUT, OLLAMA_HOST, OLLAMA_TIMEOUT)
 
 from .parse import parse_request
 
@@ -31,6 +32,7 @@ class LLMUnavailable(RuntimeError):
 
 class OllamaClient:
     name = "ollama"
+    provider = "ollama"
 
     def __init__(self, host: str = OLLAMA_HOST, model: str = CHAT_MODEL, embed_model: str = EMBED_MODEL,
                  timeout: float = OLLAMA_TIMEOUT):
@@ -75,11 +77,104 @@ class OllamaClient:
         return [list(v) for v in resp.embeddings]
 
 
+def _to_openai_messages(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """代理迴圈沿用 Ollama 的訊息格式（tool 訊息只有 tool_name），轉成 OpenAI 格式：
+    補上 tool_call id、arguments 轉成 JSON 字串，tool 訊息依序對應到前一則 assistant 的呼叫。"""
+    out, pending = [], []
+    for m in messages:
+        role = m.get("role")
+        if role == "assistant" and m.get("tool_calls"):
+            calls = []
+            for tc in m["tool_calls"]:
+                fn = tc.get("function", tc)
+                args = fn.get("arguments") or {}
+                calls.append({"id": f"call_{len(out)}_{len(calls)}", "type": "function",
+                              "function": {"name": fn["name"],
+                                           "arguments": args if isinstance(args, str) else json.dumps(args, ensure_ascii=False)}})
+            pending = [c["id"] for c in calls]
+            out.append({"role": "assistant", "content": m.get("content") or None, "tool_calls": calls})
+        elif role == "tool":
+            out.append({"role": "tool", "tool_call_id": pending.pop(0) if pending else "call_orphan",
+                        "content": m.get("content") or ""})
+        else:
+            out.append({"role": role, "content": m.get("content") or ""})
+    return out
+
+
+class ApiClient:
+    """OpenAI 相容的雲端 API：OpenAI、Gemini、Groq、OpenRouter 等都支援同一套 chat.completions／embeddings，
+    換服務商只要改 LLM_API_BASE 與模型名稱。本機不用跑模型，但使用者的問題與工具結果會送到服務商。"""
+
+    provider = "api"
+
+    def __init__(self, base_url: str = LLM_API_BASE, api_key: str = LLM_API_KEY, model: str = LLM_API_CHAT_MODEL,
+                 embed_model: str = LLM_API_EMBED_MODEL, timeout: float = LLM_API_TIMEOUT, client=None):
+        if not api_key:
+            raise LLMUnavailable("沒有設定 LLM_API_KEY（可以寫在專案根目錄的 .env）")
+        if not model:
+            raise LLMUnavailable("沒有設定 LLM_API_CHAT_MODEL")
+        self.base_url = base_url
+        self.model = model
+        self.embed_model = embed_model
+        self.name = f"api · {model}"
+        if client is None:
+            import openai
+
+            # 免費方案常遇到 429，交給 SDK 以指數退避重試
+            client = openai.OpenAI(base_url=base_url, api_key=api_key, timeout=timeout, max_retries=5)
+        self.client = client
+
+    def ping(self) -> None:
+        try:
+            self.client.models.list()
+        except Exception as e:
+            raise LLMUnavailable(f"連不到 {self.base_url}：{e}") from e
+
+    def chat(self, messages: List[Dict[str, Any]], tools: Optional[list] = None,
+             format: Optional[dict] = None) -> Dict[str, Any]:
+        kwargs: Dict[str, Any] = {"model": self.model, "messages": _to_openai_messages(messages), "temperature": 0}
+        if tools:
+            kwargs["tools"] = tools
+        if format is not None:
+            kwargs["response_format"] = {"type": "json_schema", "json_schema": {"name": "output", "schema": format}}
+        try:
+            resp = self.client.chat.completions.create(**kwargs)
+        except Exception as e:
+            if format is None or getattr(e, "status_code", None) != 400:
+                raise
+            # 有些服務商只支援 json_object：改成把 schema 寫進指令
+            log.info("服務商不支援 json_schema，改用 json_object：%s", e)
+            kwargs["response_format"] = {"type": "json_object"}
+            kwargs["messages"] = kwargs["messages"] + [
+                {"role": "user", "content": "只輸出符合這個 JSON schema 的 JSON，不要其他文字：" + json.dumps(format, ensure_ascii=False)}]
+            resp = self.client.chat.completions.create(**kwargs)
+        msg = resp.choices[0].message
+        calls = []
+        for tc in msg.tool_calls or []:
+            try:
+                args = json.loads(tc.function.arguments or "{}")
+            except json.JSONDecodeError:
+                args = {}
+            calls.append({"name": tc.function.name, "arguments": args if isinstance(args, dict) else {}})
+        content = msg.content or ""
+        if format is not None:
+            content = re.sub(r"^```(?:json)?\s*|\s*```$", "", content.strip())
+        return {"content": content, "tool_calls": calls}
+
+    def embed(self, texts: List[str]) -> List[List[float]]:
+        if not self.embed_model:
+            raise LLMUnavailable("沒有設定 LLM_API_EMBED_MODEL，無法用 API 建立大綱索引")
+        resp = self.client.embeddings.create(model=self.embed_model, input=texts)
+        return [list(d.embedding) for d in sorted(resp.data, key=lambda d: d.index)]
+
+
 class MockClient:
     """規則式替身：用 parse_request 解析需求 → 固定呼叫 find_courses（有主題時再加大綱語意搜尋）
     → 依工具結果組出最終 JSON。行為可預期，給測試與沒有 GPU 的展示用。"""
 
     name = "mock"
+    provider = "mock"
+    embed_model = "mock-char-bigram"
     EMBED_DIM = 1024  # 與 bge-m3 同維度；太小的話中文 bigram 雜湊碰撞嚴重
 
     def ping(self) -> None:
@@ -177,25 +272,29 @@ class MockClient:
 
 
 _client_cache: Dict[str, Any] = {}
+_CLIENTS = {"api": ApiClient, "ollama": OllamaClient}
 
 
 def get_client(provider: Optional[str] = None, fallback: bool = True):
-    """依設定取得用戶端。Ollama 連不上時（fallback=True）退回 MockClient，並在 name 註明。"""
+    """依設定取得用戶端。API 或 Ollama 連不上時（fallback=True）退回 MockClient，並在 name 註明。"""
     provider = (provider or AI_PROVIDER).lower()
     if provider == "mock":
         return _client_cache.setdefault("mock", MockClient())
-    if "ollama" in _client_cache:
-        return _client_cache["ollama"]
+    if provider not in _CLIENTS:
+        raise ValueError(f"未知的 AI_PROVIDER：{provider}（可用 api、ollama、mock）")
+    if provider in _client_cache:
+        return _client_cache[provider]
     try:
-        client = OllamaClient()
+        client = _CLIENTS[provider]()
         client.ping()
-        _client_cache["ollama"] = client
+        _client_cache[provider] = client
         return client
     except Exception as e:
         if not fallback:
             raise
-        log.warning("Ollama 無法使用，改用離線規則模式：%s", e)
+        label = "雲端 API" if provider == "api" else "Ollama"
+        log.warning("%s 無法使用，改用離線規則模式：%s", label, e)
         mock = MockClient()
-        mock.name = "mock（Ollama 無法使用，已自動改用離線規則模式）"
+        mock.name = f"mock（{label} 無法使用，已自動改用離線規則模式）"
         mock.fallback_reason = str(e)
         return mock

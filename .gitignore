@@ -26,6 +26,9 @@ env/
 ENV/
 .venv
 
+# API 金鑰（範本見 .env.example）
+.env
+
 # IDE
 .vscode/
 .idea/
