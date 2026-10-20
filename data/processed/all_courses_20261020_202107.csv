@@ -14975,9 +14975,9 @@
 114,2,485,55012,工學位碩一,工學院,工學院國際工程碩士學位學程,1,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1142/55012_1EIMP2107330_EN.pdf,英文,工程設計最佳化,Engineering Design Optimization,系選修,,True,3.0,王可文,王可文,經世館,(三) 06-08 經世館32101,三,6,8,經世館32101,30,0,17,可跨班系,
 114,2,486,55011,工學位碩四,工學院,工學院國際工程碩士學位學程,4,甲班,日間部,碩士班,,,無,論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,20,0,2,限本班,
 114,2,487,55008,工學位碩三,工學院,工學院國際工程碩士學位學程,3,甲班,日間部,碩士班,,,無,論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,20,0,3,限本班,
-114,2,488,55007,工學位碩二,工學院,工學院國際工程碩士學位學程,2,甲班,日間部,碩士班,,,無,論文指導(一),Thesis Supervision I,系必修,,False,3.0,論文,論文,,,<NA>,,,,20,2,6,限本系,
-114,2,489,55006,工學位碩二,工學院,工學院國際工程碩士學位學程,2,甲班,日間部,碩士班,,,無,論文指導(二),Thesis Supervision II,系必修,,False,3.0,論文,論文,,,<NA>,,,,20,2,4,限本系,
-114,2,490,55005,工學位碩二,工學院,工學院國際工程碩士學位學程,2,甲班,日間部,碩士班,,,無,論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,20,2,4,限本班,
+114,2,488,55007,工學位碩二,工學院,工學院國際工程碩士學位學程,2,甲班,日間部,碩士班,,,無,論文指導(一),Thesis Supervision I,系必修,,True,3.0,論文,論文,,,<NA>,,,,20,2,6,限本系,
+114,2,489,55006,工學位碩二,工學院,工學院國際工程碩士學位學程,2,甲班,日間部,碩士班,,,無,論文指導(二),Thesis Supervision II,系必修,,True,3.0,論文,論文,,,<NA>,,,,20,2,4,限本系,
+114,2,490,55005,工學位碩二,工學院,工學院國際工程碩士學位學程,2,甲班,日間部,碩士班,,,無,論文,Thesis,系必修,,True,0.0,論文,論文,,,<NA>,,,,20,2,4,限本班,
 114,2,491,55004,工學位碩一,工學院,工學院國際工程碩士學位學程,1,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1142/55004_1EIMP2102230_EN.pdf,英文,數位訊號處理,Digital Signal Processing,系選修,,True,3.0,楊文然,楊文然,教學二館,(四) 07-09 34203,四,7,9,34203,30,12,24,可跨班系,
 114,2,492,55003,工學位碩一,工學院,工學院國際工程碩士學位學程,1,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1142/55003_1EIMP2106230_EN.pdf,英文,散熱模組設計與應用,Thermal Module Design and Application,系選修,,True,3.0,李建興,李建興,教學一館,(一) 06-08 33201,一,6,8,33201,30,13,14,可跨班系,
 114,2,493,55002,工學位碩一,工學院,工學院國際工程碩士學位學程,1,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1142/55002_1EIMP2105430_EN.pdf,英文,類比積體電路設計,Analog Integrated Circuit Design,系選修,,True,3.0,賴永齡,賴永齡,工學院,(五) 05-07 EB226,五,5,7,EB226,30,10,29,可跨班系,
@@ -16645,10 +16645,10 @@
 115,1,179,67068,財金碩一,管理學院,財務金融技術學系,1,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67068_1MABE2027030.pdf,中文,財金數量方法,Financial Econometrics,系必修,,False,3.0,謝企榮,謝企榮,經世館,(五) 02-04 32605,五,2,4,32605,50,18,30,限本班,
 115,1,180,67067,財金博二,管理學院,財務金融技術學系,2,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67067_1MABE1183530.pdf,中文,行為會計研究,Seminar on Behavioral Accounting,組選修,,False,3.0,鄭國枝,鄭國枝,經世館,(二) 05-07 32603,二,5,7,32603,20,13,16,限本班,(管理組)
 115,1,181,67066,財金行管夜碩二A,管理學院,財務金融技術學系,2,甲班,夜間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67066_1MABEE010300.pdf,中文,論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,30,0,13,限本系,
-115,1,182,67065,財金行管夜碩一A,管理學院,財務金融技術學系,1,甲班,夜間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67065_1MABEE008520.pdf,中文,投資學,Investments,系選修,,False,2.0,陳信憲,陳信憲,經世館,(一) 10-13 32410-二館,一,10,13,32410-二館,30,0,17,限本班,單週上課，第一次上課為9月14日。
+115,1,182,67065,財金行管夜碩一A,管理學院,財務金融技術學系,1,甲班,夜間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67065_1MABEE008520.pdf,中文,投資學,Investments,系選修,,False,2.0,陳信憲,陳信憲,經世館,(一) 10-13 32410-二館,一,10,13,32410-二館,30,0,16,限本班,單週上課，第一次上課為9月14日。
 115,1,183,67063,財金行管夜碩二A,管理學院,財務金融技術學系,2,甲班,夜間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67063_1MABEE008920.pdf,中文,國際投資專題研究,Studies in International Investment,系選修,,False,2.0,紀信義,紀信義,經世館,(五) 10-13 32605,五,10,13,32605,30,0,20,限本班,單週上課，第一次上課為9月18日。
 115,1,184,67062,財金行管夜碩一A,管理學院,財務金融技術學系,1,甲班,夜間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67062_1MABEE175120.pdf,中文,投資銀行學,Investment Banking,系選修,,False,2.0,謝企榮,謝企榮,經世館,(五) 10-13 32605,五,10,13,32605,30,0,28,限本班,雙週上課，第一次上課為9月25日。
-115,1,185,67061,財金行管夜碩一A,管理學院,財務金融技術學系,1,甲班,夜間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67061_1MABEE006820.pdf,中文,研究方法,Research Method,系選修,,False,2.0,陳美華,陳美華,經世館,(一) 10-13 32606,一,10,13,32606,30,0,19,限本班,雙週上課，第一次上課為9月21日。
+115,1,185,67061,財金行管夜碩一A,管理學院,財務金融技術學系,1,甲班,夜間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67061_1MABEE006820.pdf,中文,研究方法,Research Method,系選修,,False,2.0,陳美華,陳美華,經世館,(一) 10-13 32606,一,10,13,32606,30,0,18,限本班,雙週上課，第一次上課為9月21日。
 115,1,186,67059,財金行管夜碩一A,管理學院,財務金融技術學系,1,甲班,夜間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67059_1MABEE136620.pdf,中文,人力資源發展,Human Resource Development,系選修,,False,2.0,温玲玉,温玲玉,經世館,(二) 10-13 32606,二,10,13,32606,30,0,12,限本班,單週上課，第一次上課為9月15日。
 115,1,187,67058,財金博二,管理學院,財務金融技術學系,2,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67058_1MABE1187230.pdf,中文,管理研究方法,Research Methodology in Management,組選修,,False,3.0,張世其,張世其,經世館,(一) 05-07 32313,一,5,7,32313,20,2,5,限本系,(管理組)
 115,1,188,67057,財金博二,管理學院,財務金融技術學系,2,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/67057_1MABE1184330.pdf,中文,行銷策略專題研究,Marketing Strategy Research,組選修,,False,3.0,葉凱莉,葉凱莉,經世館,(三) 02-04 32313,三,2,4,32313,20,2,5,限本系,(管理組)
@@ -16764,8 +16764,8 @@
 115,1,297,62080,會二乙,管理學院,會計學系,2,乙班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/62080_1MAAC0140930.pdf,中文,商事法,Business Law,系必修,,False,3.0,施清火,施清火,經世館,(一) 05-07 32105-二館,一,5,7,32105-二館,50,2,41,限本班,
 115,1,298,62079,會碩二乙,管理學院,會計學系,2,乙班,日間部,碩士班,,,無,論文指導(一),Thesis Advice,系必修,,False,3.0,,,,,<NA>,,,,30,17,20,限本班,
 115,1,299,62078,會碩二乙,管理學院,會計學系,2,乙班,日間部,碩士班,,,無,論文,Research Thesis,系必修,,False,0.0,,,,,<NA>,,,,30,18,22,限本班,
-115,1,300,62077,會碩二甲,管理學院,會計學系,2,甲班,日間部,碩士班,,,無,論文指導(一),Thesis Advice,系必修,,False,3.0,,,,,<NA>,,,,30,17,19,限本班,
-115,1,301,62076,會碩二甲,管理學院,會計學系,2,甲班,日間部,碩士班,,,無,論文,Research Thesis,系必修,,False,0.0,,,,,<NA>,,,,30,17,20,限本班,
+115,1,300,62077,會碩二甲,管理學院,會計學系,2,甲班,日間部,碩士班,,,無,論文指導(一),Thesis Advice,系必修,,False,3.0,,,,,<NA>,,,,30,17,20,限本班,
+115,1,301,62076,會碩二甲,管理學院,會計學系,2,甲班,日間部,碩士班,,,無,論文,Research Thesis,系必修,,False,0.0,,,,,<NA>,,,,30,17,21,限本班,
 115,1,302,62075,會碩一甲,管理學院,會計學系,1,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/62075_1MAAC2007630.pdf,中英,會計研究方法,Research Methodology in Accounting Study,系必修,,False,3.0,林玉君,林玉君,經世館,(五) 05-07 32603,五,5,7,32603,30,19,22,限本班,
 115,1,303,62074,會三乙,管理學院,會計學系,3,乙班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/62074_1MAAC0140230.pdf,中文,稅務法規,TAX Laws,系必修,,False,3.0,沈萬發,沈萬發,經世館,(五) 02-04 32603,五,2,4,32603,50,42,53,限本班,
 115,1,304,62073,會三甲,管理學院,會計學系,3,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/62073_1MAAC0148230.pdf,中文,會計與審計專題,Seminar on Accounting and Auditing Issues,系選修,,False,3.0,陳明宏,陳明宏,經世館,(五) 02-04 32309教室,五,2,4,32309教室,50,0,26,限本系,
@@ -16906,7 +16906,7 @@
 115,1,433,55003,工學位碩一,工學院,工學院國際工程碩士學位學程,1,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/55003_1EIMP2107130_EN.pdf,英文,影像處理,Image Processing,系選修,,True,3.0,楊文然,楊文然,教學二館,(二) 08-10 34203,二,8,10,34203,30,12,22,可跨班系,
 115,1,434,55002,工學位碩一,工學院,工學院國際工程碩士學位學程,1,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/55002_1EIMP2105930_EN.pdf,英文,人工智慧,Artificial Intelligence,系選修,,True,3.0,楊文然,楊文然,教學二館,(三) 08-10 34203,三,8,10,34203,30,13,18,可跨班系,
 115,1,435,55001,工學位碩一,工學院,工學院國際工程碩士學位學程,1,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/55001_1EIMP2100120_EN.pdf,英文,書報討論(一),Seminar I,系必修,,True,2.0,伍朝欽,伍朝欽,工學院,(一) 07-08 EB226,一,7,8,EB226,20,12,16,可跨班系,
-115,1,436,54040,人工智慧應用服務碩士在職專班二,科技學院,人工智慧科技應用碩士學位學程,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/54040_1EICSE159900.pdf,中文,論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,30,0,22,限本系,
+115,1,436,54040,人工智慧應用服務碩士在職專班二,科技學院,人工智慧科技應用碩士學位學程,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/54040_1EICSE159900.pdf,中文,論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,30,0,21,限本系,
 115,1,437,54039,人工智慧應用服務碩士在職專班二,科技學院,人工智慧科技應用碩士學位學程,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/54039_1EICSE159630.pdf,中英,研究專題(一),Project of Research I,系必修,,False,3.0,陳仁德黃耀賢蕭如淵施明毅陳伯岳詹益禎,"陳仁德, 黃耀賢, 蕭如淵, 施明毅, 陳伯岳, 詹益禎",工學院,(六) 02-04 資工研討室(二),六,2,4,資工研討室,30,0,7,限本系,
 115,1,438,54038,人工智慧應用服務碩士在職專班二,科技學院,人工智慧科技應用碩士學位學程,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/54038_1EICSE160930.pdf,中文,資料探勘,Data Mining,系選修,,False,3.0,施明毅,施明毅,工學院,(三) 10-12 資工電腦教室(一),三,10,12,資工電腦教室,30,0,10,限本系,
 115,1,439,54037,人工智慧應用服務碩士在職專班二,科技學院,人工智慧科技應用碩士學位學程,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/54037_1EICSE161830.pdf,中文,智慧物聯網實務,Practice of Intelligent Internet of Things,系選修,,False,3.0,丁德榮,丁德榮,工學院,(二) 10-12 資工電腦教室(二),二,10,12,資工電腦教室,30,0,7,限本系,
@@ -17479,7 +17479,7 @@
 115,1,992,310A3,科技博二,科技學院,電機與機械科技學系,2,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/310A3_1TCIE1155330.pdf,中文,技職教育課程專題研究,Case Study of Vocational Education Curriculum,組選修,,False,3.0,張紹勳,張紹勳,力行館,(三) 02-04 31213研討室,三,2,4,31213研討室,20,1,10,限本系,
 115,1,993,310A2,科技博一,科技學院,電機與機械科技學系,1,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/310A2_1TCIE1192430.pdf,中文,工程與技術教育專題研究,Thematic Studies Engineering and Technology Education,系選修,,False,3.0,石文傑,石文傑,力行館,(二) 07-09 31218研討室,二,7,9,31218研討室,20,2,8,限本系,
 115,1,994,310A1,科技博二,科技學院,電機與機械科技學系,2,甲班,日間部,博士班,,,無,論文指導(一),Thesis Supervision I,系必修,,False,3.0,,,,,<NA>,,,,50,1,16,限本系,
-115,1,995,31099,科技博二,科技學院,電機與機械科技學系,2,甲班,日間部,博士班,,,無,論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,99,23,63,限本班,
+115,1,995,31099,科技博二,科技學院,電機與機械科技學系,2,甲班,日間部,博士班,,,無,論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,99,23,64,限本班,
 115,1,996,31098,科技博二,科技學院,電機與機械科技學系,2,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/31098_1TCIE1199630.pdf,中文,配電系統模擬與分析專題研究,Study of Distribution System Simulation and Analysis,組選修,,False,3.0,黃維澤,黃維澤,力行館,(四) 02-04 31221會議室,四,2,4,31221會議室,20,2,6,限本系,
 115,1,997,31097,科技博二,科技學院,電機與機械科技學系,2,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/31097_1TCIE1156130.pdf,中文,技職教育診斷與補救教學專題研究,Thematic studies and remedial teaching vocational education diagnosis,組選修,,False,3.0,廖錦文,廖錦文,力行館,(四) 02-04 31506,四,2,4,31506,20,2,7,限本系,
 115,1,998,31096,科技博二,科技學院,電機與機械科技學系,2,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/31096_1TCIE1198130.pdf,中文,智慧型控制專題研究,Study of Intelligent Control,組選修,,False,3.0,陳德發,陳德發,力行館,(二) 07-09 31601,二,7,9,31601,20,2,6,限本系,
@@ -17802,7 +17802,7 @@
 115,1,1282,23001,物一甲,理學院,物理學系,1,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/23001_0CCGE0177920.pdf,中文,生命探索發展與實踐,Life and Career Development and Practice,校必(通識),,False,2.0,王右武吳憲昌,"王右武, 吳憲昌",教學大樓,(五) 03-04 T105,五,3,4,T105,50,0,47,限本班,大二~大四生如要修習，以線上加簽方式
 115,1,1283,22062,數碩博,理學院,數學系,碩士,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/22062_1SCMA3178430.pdf,中文,空間統計專題(一),Topics in Spatial Statistics I,系選修,,False,3.0,連怡斌黃靜惠陳彥中,"連怡斌, 黃靜惠, 陳彥中",巧思館,(二) 05-07 數研C,二,5,7,數研C,20,0,3,可跨班系,
 115,1,1284,22061,數三乙,理學院,數學系,3,乙班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/22061_1SCMA0181130.pdf,中文,幾何學(一),Geometry I,系選修,,False,3.0,蕭守仁,蕭守仁,巧思館,(一) 06-08 數學系21110,一,6,8,數學系21110,50,11,20,限本班,
-115,1,1285,22060,數博四,理學院,數學系,4,甲班,日間部,博士班,,,無,論文指導(一),Thesis Supervision I,系必修,,False,3.0,論文,論文,,,<NA>,,,,20,1,2,可跨班系,
+115,1,1285,22060,數博四,理學院,數學系,4,甲班,日間部,博士班,,,無,論文指導(一),Thesis Supervision I,系必修,,False,3.0,論文,論文,,,<NA>,,,,20,1,3,可跨班系,
 115,1,1286,22059,數博四,理學院,數學系,4,甲班,日間部,博士班,,,無,博士論文,Doctoral Dissertation,系必修,,False,0.0,論文,論文,,,<NA>,,,,20,1,7,可跨班系,
 115,1,1287,22058,數碩二,理學院,數學系,2,甲班,日間部,碩士班,,,無,論文指導(一),Thesis Supervision I,系必修,,False,3.0,論文,論文,,,<NA>,,,,20,1,14,可跨班系,
 115,1,1288,22057,數碩二,理學院,數學系,2,甲班,日間部,碩士班,,,無,碩士論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,20,1,15,可跨班系,
@@ -17942,10 +17942,10 @@
 115,1,1403,13022,教育創新與人力發展二,教育學院,教育研究所,2,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13022_1EDEDE157520.pdf,中文,教育暨行為科學學術論文評析,Studies in Evaluation for Education and Behavioral Science Articles,系選修,,False,2.0,林國楨,林國楨,明德館,(四) 10-13 視聽教室,四,10,13,視聽教室,30,0,25,限本班,單數週上課，第一次上課為9月17日。
 115,1,1404,13021,教育創新與人力發展二,教育學院,教育研究所,2,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13021_1EDEDE156420.pdf,中文,公共治理與政策分析研究,Studies in Analysis of Public Governance and Policy,系選修,,False,2.0,李靜儀,李靜儀,明德館,(一) 12-13 視聽教室,一,12,13,視聽教室,30,0,30,限本班,
 115,1,1405,13020,教育創新與人力發展二,教育學院,教育研究所,2,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13020_1EDEDE161020.pdf,中文,心理與教育統計學,Statistical Method for Psychology and Education,系必修,,False,2.0,龔心怡,龔心怡,明德館,(一) 10-11 視聽教室,一,10,11,視聽教室,30,0,30,限本班,
-115,1,1406,13019,教育創新與人力發展一,教育學院,教育研究所,1,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13019_1EDEDE158320.pdf,中文,組織領導與團體動力研究,Studies in Organizational Leadership and Group Dynamics,系選修,,False,2.0,林國楨,林國楨,明德館,(三) 10-13 視聽教室,三,10,13,視聽教室,30,0,29,限本班,雙數週上課，第一次上課為9月22日。
-115,1,1407,13018,教育創新與人力發展一,教育學院,教育研究所,1,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13018_1EDEDE156220.pdf,中英,組織行為研究,Studies in Organizational Behavior,系選修,,False,2.0,王智弘,王智弘,明德館,(三) 10-13 視聽教室,三,10,13,視聽教室,30,0,34,限本班,單數週上課，第一次上課為9月15日。
-115,1,1408,13017,教育創新與人力發展一,教育學院,教育研究所,1,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13017_1EDEDE162020.pdf,中文,教育與哲學創新研究,Studies in Education and philosophy Innovation,系選修,,False,2.0,楊忠斌,楊忠斌,明德館,(二) 10-13 視聽教室,二,10,13,視聽教室,30,0,30,限本班,單數週上課，第一次上課為9月15日。
-115,1,1409,13016,教育創新與人力發展一,教育學院,教育研究所,1,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13016_1EDEDE155020.pdf,中文,行為與教育科學研究法,Behavior and Educational Research Methods,系必修,,False,2.0,林素卿,林素卿,明德館,(二) 10-13 視聽教室,二,10,13,視聽教室,30,0,30,限本班,雙數週上課，第一次上課為９月22日。
+115,1,1406,13019,教育創新與人力發展一,教育學院,教育研究所,1,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13019_1EDEDE158320.pdf,中文,組織領導與團體動力研究,Studies in Organizational Leadership and Group Dynamics,系選修,,False,2.0,林國楨,林國楨,明德館,(三) 10-13 視聽教室,三,10,13,視聽教室,30,0,28,限本班,雙數週上課，第一次上課為9月22日。
+115,1,1407,13018,教育創新與人力發展一,教育學院,教育研究所,1,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13018_1EDEDE156220.pdf,中英,組織行為研究,Studies in Organizational Behavior,系選修,,False,2.0,王智弘,王智弘,明德館,(三) 10-13 視聽教室,三,10,13,視聽教室,30,0,33,限本班,單數週上課，第一次上課為9月15日。
+115,1,1408,13017,教育創新與人力發展一,教育學院,教育研究所,1,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13017_1EDEDE162020.pdf,中文,教育與哲學創新研究,Studies in Education and philosophy Innovation,系選修,,False,2.0,楊忠斌,楊忠斌,明德館,(二) 10-13 視聽教室,二,10,13,視聽教室,30,0,29,限本班,單數週上課，第一次上課為9月15日。
+115,1,1409,13016,教育創新與人力發展一,教育學院,教育研究所,1,甲班,日間部,大學部,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13016_1EDEDE155020.pdf,中文,行為與教育科學研究法,Behavior and Educational Research Methods,系必修,,False,2.0,林素卿,林素卿,明德館,(二) 10-13 視聽教室,二,10,13,視聽教室,30,0,29,限本班,雙數週上課，第一次上課為９月22日。
 115,1,1410,13015,教博一,教育學院,教育研究所,1,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13015_1EDED1107430.pdf,中文,教育問題專題研究,Studies of Educational Problems and Issues,系選修,,False,3.0,林國楨,林國楨,明德館,(五) 08-10 視聽教室,五,8,10,視聽教室,20,2,15,限本系,
 115,1,1411,13014,教碩博,教育學院,教育研究所,碩士,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13014_1EDED3151430.pdf,中文,班級經營專題研究,Seminar on Classroom Management,系選修,,False,3.0,林國楨,林國楨,明德館,(五) 05-07 視聽教室,五,5,7,視聽教室,20,11,19,限本系,
 115,1,1412,13013,教博一,教育學院,教育研究所,1,甲班,日間部,博士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/13013_1EDED1111330.pdf,中文,現代心理學與教育專題研究,Seminar on Modern Psychology and Education,系選修,,False,3.0,龔心怡,龔心怡,明德館,(三) 08-10 教研Ａ,三,8,10,教研Ａ,20,2,7,限本系,
@@ -18064,7 +18064,7 @@
 115,1,1522,11076,輔碩三,教育學院,輔導與諮商學系,3,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/11076_1EDGC2080830.pdf,中文,駐地實習A乙組,Internship A,系選修,,False,3.0,羅家玲,羅家玲,明德館,(五) 03-05 團諮室1(G01),五,3,5,團諮室1(G01),20,10,11,限本班,此為碩三學年課程，前學期通過全職實習申請者，方得選修；採分組督導修習，請對應督導老師選擇組別。本組15人以內修習為宜。
 115,1,1523,11075,輔碩二,教育學院,輔導與諮商學系,2,甲班,日間部,碩士班,,,無,論文,Thesis,系必修,,False,0.0,論文,論文,,,<NA>,,,,40,1,24,限本系,本學期欲畢業者必選。(學位考用)
 115,1,1524,11074,輔碩二,教育學院,輔導與諮商學系,2,甲班,日間部,碩士班,,,無,論文指導(一),Thesis Supervision I,系必修,,False,3.0,論文,論文,,,<NA>,,,,40,20,22,限本系,未請定指導教授完成者，勿選此門課程；誤選者，若無法取得成績，學費與成績責任請自負。
-115,1,1525,11072,輔碩二,教育學院,輔導與諮商學系,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/11072_1EDGC2113530.pdf,中文,諮商實習(B),Counseling Practicum (B),系必修,,False,3.0,陳尚綾,陳尚綾,明德館,(一) 02-04 博士班教室二,一,2,4,博士班教室二,20,10,11,限本系,請依本系相關實習辦法於前一期申請實習成功，方能選修。此課程有擋修，請於加退選期間再進行加選。
+115,1,1525,11072,輔碩二,教育學院,輔導與諮商學系,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/11072_1EDGC2113530.pdf,中文,諮商實習(B),Counseling Practicum (B),系必修,,False,3.0,陳尚綾,陳尚綾,明德館,(一) 02-04 碩士班教室一,一,2,4,碩士班教室一,20,10,11,限本系,請依本系相關實習辦法於前一期申請實習成功，方能選修。此課程有擋修，請於加退選期間再進行加選。
 115,1,1526,11071,輔碩二,教育學院,輔導與諮商學系,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/11071_1EDGC2147530.pdf,中文,諮商倫理與法規研究,Seminar on Ethical  & Legal  Issues in Counseling,系必修,,False,3.0,韓楷檉,韓楷檉,明德館,(三) 02-04 碩士班教室一,三,2,4,碩士班教室一,30,30,27,限本系,
 115,1,1527,11070,輔碩二,教育學院,輔導與諮商學系,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/11070_1EDGC2163430.pdf,中文,表創性藝術治療倫理與督導,Expressive-Creative Arts Therapies Ethics and Supervision,系選修,,False,3.0,吳明富,吳明富,明德館,(二) 06-08 B1多功能教室,二,6,8,B1多功能教室,20,1,8,限本系,
 115,1,1528,11069,輔碩二,教育學院,輔導與諮商學系,2,甲班,日間部,碩士班,,https://webap0.ncue.edu.tw/DEANV2/UploadDEAN/SUBJECT/1151/11069_1EDGC2113430.pdf,中文,諮商實習(A),Counseling Practicum (A),系必修,,False,3.0,陳尚綾,陳尚綾,明德館,(一) 07-09 碩士班教室一,一,7,9,碩士班教室一,20,21,22,限本系,請依本系相關實習辦法於前一期申請實習成功，方能選修。此課程有擋修，請於加退選期間再進行加選。
