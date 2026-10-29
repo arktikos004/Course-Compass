@@ -13,6 +13,7 @@ on:
       - 'web/**'
       - 'functions/**'
       - 'src/api/**'
+      - 'tests/ai_proxy.test.mjs'
       - 'scripts/build_static.py'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
@@ -58,6 +59,10 @@ jobs:
         run: |
           python scripts/build_fixtures.py
           node tests/parity.mjs
+
+      # 選課助理轉發到自架主機的 Pages Function：密鑰、IP、錯誤處理
+      - name: Test AI proxy function
+        run: node tests/ai_proxy.test.mjs
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3

@@ -361,6 +361,68 @@ class TestApiClient(unittest.TestCase):
             ApiClient(api_key="", model="m", client=StubOpenAI([]))
 
 
+class TestAiGate(unittest.TestCase):
+    """公開模式：密鑰、限流、只開放 /api/ai/*（規則見 src/api/ai_gate.py）"""
+
+    def setUp(self):
+        from api.ai_gate import RateLimiter, gate
+
+        self.now = [1_000_000.0]
+        self.limiter = RateLimiter(per_minute=2, per_day=3, global_per_day=4, clock=lambda: self.now[0])
+        self.gate = lambda path, headers, host="127.0.0.1", secret="s3cret": gate(path, headers, host, secret, self.limiter)
+        self.ok = {"x-backend-secret": "s3cret", "x-client-ip": "1.1.1.1", "cf-ray": "abc"}
+
+    def test_local_development_is_unrestricted(self):
+        for _ in range(10):
+            self.assertIsNone(self.gate("/api/ai/chat", {}, secret=""))
+
+    def test_secret_required_for_ai_paths(self):
+        self.assertEqual(self.gate("/api/ai/status", {"cf-ray": "abc"})[0], 403)
+        self.assertEqual(self.gate("/api/ai/status", {"x-backend-secret": "wrong"})[0], 403)
+        self.assertIsNone(self.gate("/api/ai/status", self.ok))
+
+    def test_only_ai_paths_are_public(self):
+        self.assertEqual(self.gate("/api/vacancy", {"cf-ray": "abc"})[0], 404)
+        self.assertIsNone(self.gate("/api/vacancy", {}))   # 直接在主機上開 localhost
+
+    def test_per_minute_then_per_day_limits(self):
+        chat = lambda ip: self.gate("/api/ai/chat", {**self.ok, "x-client-ip": ip})
+        self.assertIsNone(chat("1.1.1.1"))
+        self.assertIsNone(chat("1.1.1.1"))
+        self.assertEqual(chat("1.1.1.1")[0], 429)          # 同一分鐘第 3 次
+        self.assertIsNone(chat("2.2.2.2"))                 # 別人不受影響
+        self.now[0] += 61
+        self.assertIsNone(chat("1.1.1.1"))                 # 一分鐘後恢復，今天第 3 次
+        self.now[0] += 61
+        self.assertIn("每天", chat("1.1.1.1")[1])          # 每人每天 3 次
+        self.assertIn("全站", chat("3.3.3.3")[1])          # 全站 4 次用完
+        for _ in range(10):
+            self.assertIsNone(self.gate("/api/ai/status", self.ok))   # status 不計次
+
+    def test_counts_reset_on_new_day(self):
+        for _ in range(2):
+            self.gate("/api/ai/chat", self.ok)
+        self.now[0] += 86400
+        self.assertIsNone(self.gate("/api/ai/chat", self.ok))
+
+
+@unittest.skipUnless(importlib.util.find_spec("httpx"), "需要 httpx（fastapi TestClient）")
+class TestAiGateMiddleware(unittest.TestCase):
+    def test_middleware_is_wired(self):
+        from fastapi.testclient import TestClient
+
+        from api import app as app_module
+
+        original = app_module.AI_SHARED_SECRET
+        app_module.AI_SHARED_SECRET = "s3cret"
+        try:
+            client = TestClient(app_module.app)
+            self.assertEqual(client.get("/api/ai/status").status_code, 403)
+            self.assertEqual(client.get("/api/semesters", headers={"CF-Ray": "abc"}).status_code, 404)
+        finally:
+            app_module.AI_SHARED_SECRET = original
+
+
 class TestChatEndpoint(unittest.TestCase):
     """/api/ai/chat 的整合行為：直接呼叫端點函式，不需要 HTTP client"""
 

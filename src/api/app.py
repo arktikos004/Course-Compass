@@ -1,17 +1,18 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pathlib import Path
 import pandas as pd
 import logging
 from typing import List, Dict, Any, Optional, Set, Tuple
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from config import (
     PROCESSED_DATA_DIR, WEB_DIR, API_HOST, API_PORT, LOG_LEVEL, LOG_FORMAT, LOG_FILE, LOG_DIR,
     BASE_URL, REQUEST_TIMEOUT, MODELS_DIR,
+    AI_SHARED_SECRET, AI_RATE_PER_MINUTE, AI_RATE_PER_DAY, AI_GLOBAL_PER_DAY,
 )
 from utils.common import safe_read_csv, setup_logging
 from api import dashboard as dashboard_builder
@@ -20,6 +21,7 @@ from api import search as course_search
 from api import vacancy as vacancy_client
 from api.recommender import rank_courses
 from api.predictions import PredictionStore
+from api.ai_gate import RateLimiter, gate
 
 def clean_course_data(courses: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """清理課程數據，處理 NaN 並規範型別"""
@@ -138,6 +140,18 @@ app.add_middleware(
 )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+ai_limiter = RateLimiter(AI_RATE_PER_MINUTE, AI_RATE_PER_DAY, AI_GLOBAL_PER_DAY)
+
+
+@app.middleware("http")
+async def guard_public_ai(request: Request, call_next):
+    """公開模式（設定 AI_SHARED_SECRET）的密鑰檢查與限流，規則見 api/ai_gate.py"""
+    blocked = gate(request.url.path, request.headers, request.client.host if request.client else None,
+                   AI_SHARED_SECRET, ai_limiter)
+    if blocked:
+        return JSONResponse({"detail": blocked[1]}, status_code=blocked[0])
+    return await call_next(request)
 
 app.mount("/css", StaticFiles(directory=str(WEB_DIR / "assets" / "css")), name="css")
 app.mount("/js", StaticFiles(directory=str(WEB_DIR / "assets" / "js")), name="js")
@@ -805,14 +819,15 @@ async def get_prediction_model_info():
     return {k: meta.get(k) for k in keys}
 
 
+# 公開後每則訊息都會送進語言模型，限制長度避免有人塞長文消耗額度
 class ChatMessage(BaseModel):
     role: str
-    content: str
+    content: str = Field(max_length=2000)
 
 
 class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
-    current_courses: List[Dict[str, Any]] = []
+    messages: List[ChatMessage] = Field(max_length=20)
+    current_courses: List[Dict[str, Any]] = Field(default=[], max_length=60)
     year: Optional[int] = None
     semester: Optional[int] = None
     provider: Optional[str] = None  # "mock" 可強制使用離線規則模式
@@ -858,7 +873,7 @@ def ai_chat(request: ChatRequest):
 
 
 @app.get("/api/ai/syllabus-search")
-def syllabus_search(q: str, k: int = 8, year: Optional[int] = None, semester: Optional[int] = None):
+def syllabus_search(q: str = Query(max_length=200), k: int = 8, year: Optional[int] = None, semester: Optional[int] = None):
     """用自然語言搜尋教學大綱內容，回傳相關課程與命中的段落"""
     from ai.tools import course_key
 
@@ -886,7 +901,7 @@ def syllabus_search(q: str, k: int = 8, year: Optional[int] = None, semester: Op
 class SyllabusQARequest(BaseModel):
     code: str
     serial: str
-    question: str
+    question: str = Field(max_length=500)
     year: Optional[int] = None
     semester: Optional[int] = None
 

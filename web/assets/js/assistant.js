@@ -1,8 +1,9 @@
 /**
  * 選課助理分頁＋課程詳情中的「問這門課的大綱」
  *
- * 這兩個功能需要本機的 Python API（python main.py api，語言模型接雲端 API 或本機 Ollama），正式網站是全靜態部署、
- * 沒有這些端點。載入時先打 /api/ai/status 判斷：Cloudflare Pages 找不到路徑時會回首頁
+ * 這兩個功能需要 Python 後端（python main.py api，語言模型接雲端 API 或本機 Ollama）。正式網站是全靜態部署，
+ * /api/ai/* 由 Pages Function（functions/api/ai/[[path]].js）轉發到自架主機；主機沒設定或離線時
+ * status 會回 available=false 與 reason。舊的部署沒有這支 Function，Cloudflare 找不到路徑時會回首頁
  * （200 + HTML），所以必須確認拿到的是 JSON 且 available=true，不能只看狀態碼。
  * LLM 產生的文字一律跳脫後再放進 DOM。
  */
@@ -16,18 +17,23 @@ const courseStore = new Map(); // 卡片 id → 課程物件，給「加入」�
 let courseSeq = 0;
 
 let statusPromise = null;
+// 不可用的原因：not_configured（沒有後端，顯示本機版說明）、backend_down／backend_error（主機暫時離線）
+let unavailableReason = 'not_configured';
 
-/** AI 後端狀態（快取）；不可用時回傳 null */
+/** AI 後端狀態（快取）；不可用時回傳 null，原因記在 unavailableReason */
 export function aiStatus() {
     if (!statusPromise) {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 4000);
+        // 經 Pages Function 轉到自架主機要多一段路，Function 自己等主機 6 秒
+        const timer = setTimeout(() => controller.abort(), 8000);
         statusPromise = fetch(`${API_BASE}/ai/status`, { signal: controller.signal })
             .then(async (res) => {
                 const type = res.headers.get('content-type') || '';
                 if (!res.ok || !type.includes('application/json')) return null;
                 const data = await res.json();
-                return data && data.available === true ? data : null;
+                if (data && data.available === true) return data;
+                if (data?.reason) unavailableReason = data.reason;
+                return null;
             })
             .catch(() => null)
             .finally(() => clearTimeout(timer));
@@ -140,6 +146,15 @@ function renderUnavailable() {
     const form = document.getElementById('assistant-form');
     form?.classList.add('d-none');
     document.querySelectorAll('.assistant-example').forEach(b => { b.disabled = true; });
+    if (unavailableReason !== 'not_configured') {
+        logEl().innerHTML = `
+        <div class="assistant-empty small">
+            <div class="fw-bold mb-1"><i class="fas fa-triangle-exclamation me-1"></i>選課助理暫時無法使用</div>
+            <div class="text-muted">提供語言模型的主機目前連不上，請稍後重新整理再試。
+            中籤預測不受影響，查詢結果上就看得到。</div>
+        </div>`;
+        return;
+    }
     logEl().innerHTML = `
         <div class="assistant-empty small">
             <div class="fw-bold mb-1"><i class="fas fa-laptop-code me-1"></i>選課助理是本機版功能</div>

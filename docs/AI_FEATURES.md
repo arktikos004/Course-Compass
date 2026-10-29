@@ -5,13 +5,13 @@
 | 功能 | 正式網站（靜態） | 本機版（`python main.py api`） | 技術 | 報告 |
 |---|---|---|---|---|
 | 中籤預測 | ✅ 建置期寫進資料包 | ✅ | HistGradientBoosting＋conformal 區間＋isotonic 校準 | `docs/demand_model_report.md`、`docs/test_set_ledger.md` |
-| 選課助理 | 顯示本機版說明 | ✅ | LLM tool calling：雲端 OpenAI 相容 API 或本機 Ollama（qwen2.5:7b）；兩者都沒有時改用離線規則模式 | `docs/agent_eval.md` |
-| 教學大綱搜尋與問答 | 不顯示 | ✅ | PDF 文字層 → 段落切塊 → embedding 向量（API 或 bge-m3）與字元 TF-IDF 混合搜尋 | `docs/rag_eval.md` |
+| 選課助理 | 經 Pages Function 轉發到自架主機；主機未設定時顯示本機版說明 | ✅ | LLM tool calling：雲端 OpenAI 相容 API 或本機 Ollama（qwen2.5:7b）；兩者都沒有時改用離線規則模式 | `docs/agent_eval.md` |
+| 教學大綱搜尋與問答 | 同上；主機沒有大綱索引時不顯示 | ✅ | PDF 文字層 → 段落切塊 → embedding 向量（API 或 bge-m3）與字元 TF-IDF 混合搜尋 | `docs/rag_eval.md` |
 
 **為什麼分成兩種部署**：網站以 Cloudflare Pages 全靜態方式部署（見 `wrangler.toml`），沒有伺服器可以跑語言模型。
 - **中籤預測**：預測可以事先算好，由 `scripts/build_static.py` 讀取 `data/models/demand_predictions.csv`，寫進每門課的 `admission_pred`。CI 不需要安裝 scikit-learn。
-- **選課助理與大綱問答**：需要即時推論，只在本機版提供。
-- **前端判斷方式**：前端先呼叫 `/api/ai/status`，確認拿到 JSON 且 `available=true` 才啟用。Cloudflare 找不到路徑時會回傳首頁（200），所以不能只看狀態碼。
+- **選課助理與大綱問答**：需要即時推論，由一台自架的 Windows 主機執行 Python 後端（語言模型走雲端 API），經 Cloudflare Tunnel 連線。正式網站的 `/api/ai/*` 由 Pages Function（`functions/api/ai/[[path]].js`）轉發過去，並帶上共用密鑰與使用者 IP；主機依 IP 限流、另有全站每日上限，保護 API 額度（`src/api/ai_gate.py`）。部署步驟見 `docs/DEPLOY_WINDOWS.md`。
+- **前端判斷方式**：前端先呼叫 `/api/ai/status`，確認拿到 JSON 且 `available=true` 才啟用；主機未設定時顯示本機版說明，主機離線時顯示「暫時無法使用」。舊部署沒有這支 Function 時，Cloudflare 找不到路徑會回傳首頁（200），所以不能只看狀態碼。
 
 ---
 

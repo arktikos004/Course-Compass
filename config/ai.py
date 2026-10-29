@@ -1,15 +1,5 @@
 import os
 
-from .paths import PROJECT_ROOT
-
-# 專案根目錄的 .env（不進版控）可以放 API 金鑰；沒有安裝 python-dotenv 時只讀環境變數
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv(PROJECT_ROOT / ".env")
-except ImportError:
-    pass
-
 # AI 相關設定（皆可用環境變數覆寫）
 # AI_PROVIDER:
 #   "api"    走雲端的 OpenAI 相容 API（OpenAI、Gemini、Groq、OpenRouter…），本機不用跑模型
@@ -29,3 +19,11 @@ LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_API_CHAT_MODEL = os.getenv("LLM_API_CHAT_MODEL", "")
 LLM_API_EMBED_MODEL = os.getenv("LLM_API_EMBED_MODEL", "")  # 留空：只用 API 聊天，大綱索引沿用既有的
 LLM_API_TIMEOUT = float(os.getenv("LLM_API_TIMEOUT", "60"))
+
+# 公開模式（自架主機經 Cloudflare 對外時）。設定 AI_SHARED_SECRET 就啟用：
+#   /api/ai/* 必須帶 Pages Function 送來的密鑰，並依使用者 IP 限流；其他路徑不對外開放。
+# 沒設定時（本機開發）完全不檢查。
+AI_SHARED_SECRET = os.getenv("AI_SHARED_SECRET", "")
+AI_RATE_PER_MINUTE = int(os.getenv("AI_RATE_PER_MINUTE", "5"))    # 每個 IP 每分鐘
+AI_RATE_PER_DAY = int(os.getenv("AI_RATE_PER_DAY", "40"))         # 每個 IP 每天
+AI_GLOBAL_PER_DAY = int(os.getenv("AI_GLOBAL_PER_DAY", "500"))    # 全站每天；保護 API 免費額度

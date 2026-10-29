@@ -1,5 +1,15 @@
 # 將常用設定匯出到 package namespace，保持向後相容性
 from .paths import *
+
+# 專案根目錄的 .env（不進版控）放 API 金鑰、主機設定；要在其他設定模組讀環境變數之前載入。
+# 沒有安裝 python-dotenv 時（例如 CI）只讀環境變數。
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(PROJECT_ROOT / ".env")
+except ImportError:
+    pass
+
 from .crawler import *
 from .api import *
 from .logging_config import *
@@ -20,4 +30,5 @@ __all__ = [
     # ai
     'AI_PROVIDER', 'OLLAMA_HOST', 'OLLAMA_TIMEOUT', 'CHAT_MODEL', 'EMBED_MODEL', 'AGENT_MAX_STEPS',
     'LLM_API_BASE', 'LLM_API_KEY', 'LLM_API_CHAT_MODEL', 'LLM_API_EMBED_MODEL', 'LLM_API_TIMEOUT',
+    'AI_SHARED_SECRET', 'AI_RATE_PER_MINUTE', 'AI_RATE_PER_DAY', 'AI_GLOBAL_PER_DAY',
 ]
