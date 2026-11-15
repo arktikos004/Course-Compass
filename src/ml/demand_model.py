@@ -447,6 +447,25 @@ def _render_report(courses, metrics, shuffled, dev_preds, meta) -> str:
     return "\n".join(lines)
 
 
+def join_predictions(cur: pd.DataFrame, preds: pd.DataFrame) -> pd.DataFrame:
+    """同一學期的課程表（cur，索引是課程表的列）接上預測檔（preds）。
+
+    序號在重新爬取後會位移，所以不能只比「課程代碼＋序號」：序號對不上的課，
+    依同一課程代碼底下的班次順序對回預測檔（api.predictions.align_serials），班次數不同就不接。"""
+    from api.predictions import align_serials
+
+    def serial_sets(d: pd.DataFrame) -> dict:
+        return d.groupby(d["課程代碼"].astype(str))["序號"].agg(lambda s: set(s.astype(str))).to_dict()
+
+    alias = align_serials(serial_sets(cur), serial_sets(preds))
+    cur, preds = cur.reset_index(), preds.copy()
+    codes, serials = cur["課程代碼"].astype(str), cur["序號"].astype(str)
+    targets = [alias.get((code, serial), serial) for code, serial in zip(codes, serials)]
+    cur["k"] = [None if target is None else f"{code}_{target}" for code, target in zip(codes, targets)]
+    preds["k"] = preds["課程代碼"].astype(str) + "_" + preds["序號"].astype(str)
+    return cur.merge(preds.drop(columns=KEY), on="k", how="inner").set_index("index")
+
+
 def eval_holdout(csv_path: Path, models_dir: Path, docs_dir: Path, note: str = "") -> pd.DataFrame:
     """凍結模型在 held-out 學期上的一次性評估，結果附加到 test_set_ledger.md。"""
     courses = load_courses(csv_path)
@@ -455,10 +474,7 @@ def eval_holdout(csv_path: Path, models_dir: Path, docs_dir: Path, note: str = "
     preds = preds[semester_label(preds) == HOLDOUT_SEMESTER]
     if preds.empty:
         raise RuntimeError(f"找不到 {HOLDOUT_SEMESTER} 的預測，請先執行 train-demand")
-    cur = courses[courses["idx"] == t].reset_index()
-    key_str = lambda d: d["課程代碼"].astype(str) + "_" + d["序號"].astype(str)
-    cur["k"], preds["k"] = key_str(cur), key_str(preds)
-    merged = cur.merge(preds.drop(columns=KEY), on="k", how="inner").set_index("index")
+    merged = join_predictions(courses[courses["idx"] == t], preds)
     truth = merged[merged["labeled"]]
     feats = build_features(courses, t)
     rows = []

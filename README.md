@@ -230,9 +230,9 @@ python scripts/build_static.py && python main.py api   # 本機完整版：http:
 python -m unittest discover -s tests -v
 ```
 
-70 項測試，涵蓋篩選層、推薦評分、搜尋排序、儀表板統計與 `/api/courses/query` 的整合行為，
+87 項測試，涵蓋篩選層、推薦評分、搜尋排序、儀表板統計與 `/api/courses/query` 的整合行為，
 以及 AI 功能（`tests/test_ai.py`：中籤預測防洩漏、選課助理防幻覺、大綱切塊）。
-其中 7 項需要 scikit-learn，沒裝 `requirements-ai.txt` 時自動略過（CI 即是如此）。
+其中 8 項需要 scikit-learn，沒裝 `requirements-ai.txt` 時自動略過（CI 即是如此）。
 多數用手工造的小資料集，不需要先跑爬蟲；少數 smoke 測試會在
 `data/processed/` 有實際資料時才執行。
 
@@ -244,6 +244,7 @@ python -m unittest discover -s tests -v
 - 學院選單必須排除通識教育中心等非學院單位
 - 教師排行要濾掉原始資料把「論文」填進教師欄的情況
 - `rank_results` 不可覆寫已算好的中籤率，否則兩種熱門排序會失效
+- 學校的序號在重新爬取後會位移，中籤預測要依同一課程代碼底下的班次順序對回去，不能只比序號
 
 ## 注意事項
 

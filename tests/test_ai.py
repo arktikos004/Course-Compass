@@ -165,6 +165,17 @@ class TestDemandModel(unittest.TestCase):
             self.assertTrue((tmp / "demand_model.joblib").exists())
             self.assertEqual(predict_missing(csv_path, tmp), [])   # 已補過就不重複
 
+    def test_join_predictions_follows_renumbered_sections(self):
+        """評估時接預測檔：序號位移的課要接到原本那一班，班次數變了的課不接"""
+        from ml.demand_model import join_predictions
+
+        cur = pd.DataFrame({"學年度": 115, "學期": 1, "課程代碼": ["A", "B", "B", "C", "C", "C"],
+                            "序號": [7, 20, 21, 30, 31, 32], "labeled": True}, index=[100, 101, 102, 103, 104, 105])
+        preds = pd.DataFrame({"學年度": 115, "學期": 1, "課程代碼": ["A", "B", "B", "C", "C"],
+                              "序號": [9, 21, 22, 30, 31], "p_full": [0.1, 0.2, 0.3, 0.4, 0.5]})
+        merged = join_predictions(cur, preds)
+        self.assertEqual(merged["p_full"].to_dict(), {100: 0.1, 101: 0.2, 102: 0.3})
+
     def test_evaluate_perfect_prediction(self):
         from ml.demand_model import evaluate
 
@@ -208,6 +219,63 @@ class TestPredictionStore(unittest.TestCase):
         self.assertEqual(store.meta(), {})
 
 
+def write_section_predictions(folder: Path, sections) -> None:
+    """sections：[(課程代碼, 序號, p_full), …]，都放在 114-2"""
+    pd.DataFrame([{
+        "學年度": 114, "學期": 2, "課程代碼": code, "序號": serial, "pred_log": 0.0, "q10": 0.0, "q90": 0.0,
+        "p_full": p_full, "est_admit": 1.0, "admit_lo": 1.0, "admit_hi": 1.0, "idx": 29, "model_version": "demand-v1",
+    } for code, serial, p_full in sections]).to_csv(folder / "demand_predictions.csv", index=False, encoding="utf-8-sig")
+
+
+def course_rows(sections) -> pd.DataFrame:
+    """sections：[(課程代碼, 序號), …]；目前爬到的 114-2 課程清單"""
+    return pd.DataFrame([{"學年度": 114, "學期": 2, "課程代碼": code, "序號": serial, "上限人數": 60, "課程性質": "系選修"}
+                         for code, serial in sections])
+
+
+class TestPredictionSerialShift(unittest.TestCase):
+    """學校的序號是清單裡的流水號：中途增開或停開別的課，後面的序號就整批位移。
+    2026-11 實際發生：重新爬取後 115-1 只剩兩成的課對得上預測。"""
+
+    def lookup(self, predictions, current):
+        with tempfile.TemporaryDirectory() as tmp:
+            write_section_predictions(Path(tmp), predictions)
+            store = PredictionStore(Path(tmp), allow_compute=False)
+            table = course_rows(current)
+            return [(store.get(row, table) or {}).get("p_full") for row in table.to_dict("records")]
+
+    def test_renumbered_course_keeps_its_prediction(self):
+        self.assertEqual(self.lookup([("00139", 1854, 0.42)], [("00139", 1834)]), [0.42])
+
+    def test_sections_of_one_course_pair_up_in_order(self):
+        got = self.lookup([("62019", 358, 0.1), ("62019", 359, 0.2)], [("62019", 340), ("62019", 341)])
+        self.assertEqual(got, [0.1, 0.2])
+
+    def test_shifted_serial_wins_over_a_coincidental_exact_match(self):
+        # 目前的 359 是原本的 358：不能因為預測檔剛好也有 359 就拿錯班的預測
+        got = self.lookup([("62019", 358, 0.1), ("62019", 359, 0.2)], [("62019", 359), ("62019", 360)])
+        self.assertEqual(got, [0.1, 0.2])
+
+    def test_changed_number_of_sections_shows_no_prediction(self):
+        # 班次數變了就分不出誰對誰：寧可不顯示
+        got = self.lookup([("62019", 358, 0.1), ("62019", 359, 0.2)], [("62019", 358), ("62019", 359), ("62019", 360)])
+        self.assertEqual(got, [None, None, None])
+
+    def test_other_semesters_and_unknown_courses_are_untouched(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            write_section_predictions(Path(tmp), [("00139", 1854, 0.42)])
+            store = PredictionStore(Path(tmp), allow_compute=False)
+            table = course_rows([("00139", 1834), ("99999", 7)])
+            other_semester = {"學年度": 115, "學期": 1, "課程代碼": "00139", "序號": 1834, "上限人數": 60, "課程性質": "系選修"}
+            self.assertIsNone(store.get(table.to_dict("records")[1], table))
+            self.assertIsNone(store.get(other_semester, table))
+
+    def test_multiple_time_slot_rows_count_as_one_section(self):
+        # 原始資料一門課每個上課時段一列，序號相同
+        got = self.lookup([("67030", 213, 0.3)], [("67030", 200), ("67030", 200)])
+        self.assertEqual(got, [0.3, 0.3])
+
+
 class TestStaticBundlePredictions(unittest.TestCase):
     """靜態資料包只讀預測檔：CI 不裝 scikit-learn 也要能建置"""
 
@@ -225,6 +293,18 @@ class TestStaticBundlePredictions(unittest.TestCase):
         self.assertEqual(n, 1)
         self.assertEqual(courses[0]["admission_pred"], {"p_full": 0.812, "est_admit": 0.6, "admit_lo": 0.4, "admit_hi": 0.9})
         self.assertNotIn("admission_pred", courses[1])
+
+    def test_attach_predictions_follows_renumbered_courses(self):
+        spec = importlib.util.spec_from_file_location("build_static", ROOT / "scripts" / "build_static.py")
+        build_static = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(build_static)
+        table = course_rows([("00139", 1834), ("54012", 463)])
+        courses = table.to_dict("records")
+        with tempfile.TemporaryDirectory() as tmp:
+            write_section_predictions(Path(tmp), [("00139", 1854, 0.42), ("54012", 463, 0.08)])
+            n = build_static.attach_predictions(courses, PredictionStore(Path(tmp), allow_compute=False), table)
+        self.assertEqual(n, 2)
+        self.assertEqual([c["admission_pred"]["p_full"] for c in courses], [0.42, 0.08])
 
 
 # ============================================================ 選課助理

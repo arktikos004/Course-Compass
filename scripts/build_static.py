@@ -28,6 +28,7 @@ import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 
@@ -88,12 +89,13 @@ def records(df: pd.DataFrame, columns) -> list:
     return clean_course_data(df[available].to_dict("records"))
 
 
-def attach_predictions(courses: list, store: PredictionStore) -> int:
+def attach_predictions(courses: list, store: PredictionStore, table: Optional[pd.DataFrame] = None) -> int:
     """把樣本外中籤預測掛到每門課上（admission_pred）；回傳有預測的門數。
-    模型版本放在 meta.json 一次就好，逐門只留數字，控制資料包大小。"""
+    模型版本放在 meta.json 一次就好，逐門只留數字，控制資料包大小。
+    table：完整課程表；重新爬取後序號位移時，靠它對回預測檔的班次。"""
     count = 0
     for course in courses:
-        pred = store.get(course)
+        pred = store.get(course, table)
         if pred:
             course["admission_pred"] = {k: round(pred[k], 3) for k in ("p_full", "est_admit", "admit_lo", "admit_hi")}
             count += 1
@@ -152,7 +154,7 @@ def build(out_dir: Path) -> None:
         year, semester = entry["year"], entry["semester"]
         scoped = course_filters.filter_by_semester(df, year, semester)
         courses = records(scoped, COURSE_COLUMNS)
-        with_pred = attach_predictions(courses, predictions)
+        with_pred = attach_predictions(courses, predictions, df)
         payload = {
             "year": year,
             "semester": semester,
