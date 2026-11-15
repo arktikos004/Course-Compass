@@ -45,6 +45,10 @@ def main():
         "--limit", type=int, default=None,
         help="fetch-syllabi：最多下載幾份（測試用）"
     )
+    parser.add_argument(
+        "--reembed", action="store_true",
+        help="build-index：沿用現有索引的切塊，只重算向量（換 embedding 模型時用）"
+    )
 
     args = parser.parse_args()
 
@@ -85,7 +89,7 @@ def main():
 
     elif args.command == "build-index":
         from ai.index import main as index_main
-        index_main(args.semester)
+        index_main(args.semester, args.reembed)
 
     elif args.command == "eval-agent":
         from ai.evaluate import main as eval_main

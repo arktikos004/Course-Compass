@@ -2,6 +2,7 @@
 
 介面統一為：
     chat(messages, tools=None, format=None) -> {"content": str, "tool_calls": [{"name": str, "arguments": dict}]}
+        （Ollama 另外回傳 prompt_tokens 與 truncated：輸出是否因達到 num_predict 上限而被截斷）
     embed(texts) -> List[List[float]]
 寫法參考 smart-doc-archiver/src/analyzer.py 的 OllamaAnalyzer（ollama.Client + format 強制 JSON + temperature 0）。
 """
@@ -14,7 +15,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 from config import (AI_PROVIDER, CHAT_MODEL, EMBED_MODEL, LLM_API_BASE, LLM_API_CHAT_MODEL, LLM_API_EMBED_MODEL,
-                    LLM_API_KEY, LLM_API_TIMEOUT, OLLAMA_HOST, OLLAMA_TIMEOUT)
+                    LLM_API_KEY, LLM_API_TIMEOUT, OLLAMA_HOST, OLLAMA_NUM_CTX, OLLAMA_NUM_PREDICT, OLLAMA_TIMEOUT)
 
 from .parse import parse_request
 
@@ -30,16 +31,22 @@ class LLMUnavailable(RuntimeError):
     pass
 
 
+def _has_model(names, model: str) -> bool:
+    """「bge-m3」要能對到「bge-m3:latest」，但「qwen2.5:7b」不能對到「qwen2.5:14b」"""
+    return any(n == model or n.startswith(model + ":") or n.split(":")[0] == model for n in names)
+
+
 class OllamaClient:
-    name = "ollama"
     provider = "ollama"
 
     def __init__(self, host: str = OLLAMA_HOST, model: str = CHAT_MODEL, embed_model: str = EMBED_MODEL,
-                 timeout: float = OLLAMA_TIMEOUT):
+                 timeout: float = OLLAMA_TIMEOUT, num_ctx: int = OLLAMA_NUM_CTX):
         import ollama
 
         self.model = model
         self.embed_model = embed_model
+        self.num_ctx = num_ctx
+        self.name = f"ollama:{model}"  # 評估報告與介面上要看得出實際用的是哪個模型
         self.client = ollama.Client(host=host, timeout=timeout)
 
     def ping(self) -> None:
@@ -47,8 +54,10 @@ class OllamaClient:
             names = {m.model for m in self.client.list().models}
         except Exception as e:
             raise LLMUnavailable(f"連不到 Ollama（{OLLAMA_HOST}）：{e}") from e
-        if not any(n == self.model or n.startswith(self.model + ":") or n.split(":")[0] == self.model for n in names):
-            raise LLMUnavailable(f"Ollama 尚未下載模型 {self.model}，請執行 ollama pull {self.model}")
+        # 對話與大綱搜尋都要用到，缺一個就等於不能用；只查 chat 模型的話，缺 embedding 要到第一次查詢才會炸
+        for m in (self.model, self.embed_model):
+            if not _has_model(names, m):
+                raise LLMUnavailable(f"Ollama 尚未下載模型 {m}，請執行 ollama pull {m}")
 
     def chat(self, messages: List[Dict[str, Any]], tools: Optional[list] = None,
              format: Optional[dict] = None) -> Dict[str, Any]:
@@ -57,9 +66,16 @@ class OllamaClient:
             messages=messages,
             tools=tools,
             format=format,
-            # 選課建議要可重現，不需要創意；工具定義＋結果超過 Ollama 預設的 context，拉到 8k
-            options={"temperature": 0, "num_ctx": 8192},
+            # 選課建議要可重現，不需要創意；工具定義＋結果超過 Ollama 預設的 context
+            options={"temperature": 0, "num_ctx": self.num_ctx, "num_predict": OLLAMA_NUM_PREDICT},
         )
+        truncated = resp.done_reason == "length"
+        if truncated:
+            log.warning("輸出達到 num_predict=%d 上限被截斷（多半是重複生成迴圈）", OLLAMA_NUM_PREDICT)
+        prompt_tokens = resp.prompt_eval_count or 0
+        if prompt_tokens >= 0.95 * self.num_ctx:
+            log.warning("prompt 用了 %d tokens，接近 num_ctx=%d，開頭（system prompt）可能已被截掉；"
+                        "可調高 OLLAMA_NUM_CTX", prompt_tokens, self.num_ctx)
         msg = resp.message
         calls = []
         for tc in msg.tool_calls or []:
@@ -70,7 +86,7 @@ class OllamaClient:
                 except json.JSONDecodeError:
                     args = {}
             calls.append({"name": tc.function.name, "arguments": dict(args or {})})
-        return {"content": msg.content or "", "tool_calls": calls}
+        return {"content": msg.content or "", "tool_calls": calls, "prompt_tokens": prompt_tokens, "truncated": truncated}
 
     def embed(self, texts: List[str]) -> List[List[float]]:
         resp = self.client.embed(model=self.embed_model, input=texts)
@@ -276,23 +292,27 @@ _CLIENTS = {"api": ApiClient, "ollama": OllamaClient}
 
 
 def get_client(provider: Optional[str] = None, fallback: bool = True):
-    """依設定取得用戶端。API 或 Ollama 連不上時（fallback=True）退回 MockClient，並在 name 註明。"""
-    provider = (provider or AI_PROVIDER).lower()
-    if provider == "mock":
+    """依設定取得用戶端。provider 可寫「ollama:<模型>」指定對話模型（例如 ollama:qwen2.5:14b），否則用 CHAT_MODEL。
+    API 或 Ollama 連不上時（fallback=True）退回 MockClient，並在 name 註明。"""
+    provider = (provider or AI_PROVIDER).strip()
+    kind, _, model = provider.partition(":")
+    kind = kind.lower()
+    if kind == "mock":
         return _client_cache.setdefault("mock", MockClient())
-    if provider not in _CLIENTS:
-        raise ValueError(f"未知的 AI_PROVIDER：{provider}（可用 api、ollama、mock）")
-    if provider in _client_cache:
-        return _client_cache[provider]
+    if kind not in _CLIENTS or (model and kind != "ollama"):
+        raise ValueError(f"未知的 AI_PROVIDER：{provider}（可用 api、ollama、ollama:<模型>、mock）")
+    key = f"{kind}:{model}" if model else kind
+    if key in _client_cache:
+        return _client_cache[key]
     try:
-        client = _CLIENTS[provider]()
+        client = OllamaClient(model=model) if model else _CLIENTS[kind]()
         client.ping()
-        _client_cache[provider] = client
+        _client_cache[key] = client
         return client
     except Exception as e:
         if not fallback:
             raise
-        label = "雲端 API" if provider == "api" else "Ollama"
+        label = "雲端 API" if kind == "api" else "Ollama"
         log.warning("%s 無法使用，改用離線規則模式：%s", label, e)
         mock = MockClient()
         mock.name = f"mock（{label} 無法使用，已自動改用離線規則模式）"

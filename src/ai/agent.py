@@ -8,7 +8,7 @@
 import json
 import logging
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from config import AGENT_MAX_STEPS
 
@@ -75,14 +75,17 @@ def _summarize(name: str, args: Dict[str, Any], result: Dict[str, Any]) -> Dict[
     return {"tool": name, "args": args, "result": n}
 
 
-def _parse_final(content: str) -> Dict[str, Any]:
+def _parse_final(content: str) -> Tuple[Dict[str, Any], bool]:
+    """(最終回覆, 是否為合格 JSON)；不合格時把原文當成回覆，不推薦任何課"""
     try:
         data = json.loads(content)
         if isinstance(data, dict):
-            return data
+            return data, True
     except json.JSONDecodeError:
         pass
-    return {"reply": content.strip() or "（模型沒有給出回覆）", "suggestions": []}
+    if content.lstrip().startswith("{"):  # 半截的 JSON（輸出被截斷）不要原樣顯示
+        return {"reply": "（模型這次的輸出不完整，請換個說法再試一次）", "suggestions": []}, False
+    return {"reply": content.strip() or "（模型沒有給出回覆）", "suggestions": []}, False
 
 
 def run_agent(messages: List[Dict[str, str]], ctx: CourseContext, client, max_steps: int = AGENT_MAX_STEPS) -> Dict[str, Any]:
@@ -90,20 +93,27 @@ def run_agent(messages: List[Dict[str, str]], ctx: CourseContext, client, max_st
     convo: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt(ctx)}]
     convo += [{"role": m["role"], "content": m["content"]} for m in messages if m.get("role") in ("user", "assistant")]
     trace = []
+    prompt_tokens, tool_errors, truncated = [], 0, 0
 
     for _ in range(max_steps):
         out = client.chat(convo, tools=TOOL_SPECS)
+        prompt_tokens.append(out.get("prompt_tokens", 0))
+        truncated += bool(out.get("truncated"))
         if not out["tool_calls"]:
             break
         convo.append({"role": "assistant", "content": out["content"],
                       "tool_calls": [{"function": {"name": c["name"], "arguments": c["arguments"]}} for c in out["tool_calls"]]})
         for call in out["tool_calls"]:
             result = run_tool(ctx, call["name"], call["arguments"])
+            tool_errors += "error" in result
             trace.append(_summarize(call["name"], call["arguments"], result))
             convo.append({"role": "tool", "tool_name": call["name"], "content": json.dumps(result, ensure_ascii=False)})
 
     convo.append({"role": "user", "content": FINAL_INSTRUCTION})
-    final = _parse_final(client.chat(convo, format=FINAL_SCHEMA)["content"])
+    out = client.chat(convo, format=FINAL_SCHEMA)
+    prompt_tokens.append(out.get("prompt_tokens", 0))
+    truncated += bool(out.get("truncated"))
+    final, final_json_ok = _parse_final(out["content"])
 
     courses, dropped, seen = [], [], set()
     occupied = ctx.occupied
@@ -125,4 +135,8 @@ def run_agent(messages: List[Dict[str, str]], ctx: CourseContext, client, max_st
         "tool_trace": trace,
         "provider": getattr(client, "name", "unknown"),
         "elapsed_sec": round(time.time() - t0, 2),
+        # 評估用：prompt 最大用量（接近 num_ctx 代表 system prompt 可能被截掉）、工具出錯次數、
+        # 最終 JSON 是否合格、輸出被 num_predict 截斷的次數
+        "stats": {"max_prompt_tokens": max(prompt_tokens), "tool_errors": tool_errors,
+                  "final_json_ok": final_json_ok, "truncated": truncated},
     }

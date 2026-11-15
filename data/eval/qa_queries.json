@@ -1,0 +1,14 @@
+[
+  {"code": "63048", "serial": 249, "name": "國際經濟與財務管理", "q": "課堂參與占總成績的百分之幾？", "answerable": true, "expect_any": ["40%"]},
+  {"code": "00544", "serial": 1635, "name": "教學媒體與運用", "q": "這門課使用的教材是什麼？", "answerable": true, "expect_any": ["數位教學指引", "自編"]},
+  {"code": "00153", "serial": 1840, "name": "爵士舞(一)", "q": "書面報告占總成績多少？", "answerable": true, "expect_any": ["10%"]},
+  {"code": "23042", "serial": 1257, "name": "物理科教學應用與實作", "q": "這門課有安排校外參訪嗎？", "answerable": true, "expect_any": ["校外參訪", "參訪"]},
+  {"code": "22033", "serial": 1326, "name": "代數學(一)", "q": "習題與習題課表現占多少比例？", "answerable": true, "expect_any": ["20%"]},
+  {"code": "21018", "serial": 1371, "name": "數學教育專題討論", "q": "書面報告占總成績多少？", "answerable": true, "expect_any": ["60%"]},
+  {"code": "11035", "serial": 1576, "name": "個別諮商實習(一)B組", "q": "個案分析報告撰寫占多少比例？", "answerable": true, "expect_any": ["40%"]},
+  {"code": "00523", "serial": 1654, "name": "教育哲學", "q": "指定用書是哪一本？", "answerable": true, "expect_any": ["Knight", "簡成熙"]},
+  {"code": "71014", "serial": 159, "name": "籃球(一)", "q": "上課過程會錄影，讓缺課的同學事後補看嗎？", "answerable": false, "absent": ["錄影", "錄音", "重播", "補看"]},
+  {"code": "53007", "serial": 518, "name": "電磁學(二)", "q": "修這門課之前需要先修過哪些課？", "answerable": false, "absent": ["先修", "預修", "修過", "擋修"]},
+  {"code": "00437", "serial": 1688, "name": "初級法文", "q": "非本班的學生可以旁聽嗎？", "answerable": false, "absent": ["旁聽"]},
+  {"code": "61032", "serial": 393, "name": "數位內容科技與管理專題(三)", "q": "老師會提供考古題嗎？", "answerable": false, "absent": ["考古題", "歷屆"]}
+]

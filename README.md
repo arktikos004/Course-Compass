@@ -193,6 +193,7 @@ python main.py predict-demand    # 新學期公告後，用凍結模型補上預
 python main.py fetch-syllabi     # 下載當學期教學大綱 PDF（data/syllabus/，不進版控）
 cp .env.example .env             # 選課助理接雲端 API：填 LLM_API_KEY（不用在本機跑模型）
 python main.py build-index       # 建立大綱索引（用 API 或 Ollama 的 embedding；都沒有時用離線 mock）
+python main.py build-index --reembed   # 換 embedding 模型：沿用現有切塊，只重算向量
 python scripts/build_static.py && python main.py api   # 本機完整版：http://localhost:8000
 ```
 
@@ -230,9 +231,9 @@ python scripts/build_static.py && python main.py api   # 本機完整版：http:
 python -m unittest discover -s tests -v
 ```
 
-87 項測試，涵蓋篩選層、推薦評分、搜尋排序、儀表板統計與 `/api/courses/query` 的整合行為，
+95 項測試，涵蓋篩選層、推薦評分、搜尋排序、儀表板統計與 `/api/courses/query` 的整合行為，
 以及 AI 功能（`tests/test_ai.py`：中籤預測防洩漏、選課助理防幻覺、大綱切塊）。
-其中 8 項需要 scikit-learn，沒裝 `requirements-ai.txt` 時自動略過（CI 即是如此）。
+其中 13 項需要 scikit-learn、1 項需要 httpx，沒裝時自動略過（CI 即是如此）。
 多數用手工造的小資料集，不需要先跑爬蟲；少數 smoke 測試會在
 `data/processed/` 有實際資料時才執行。
 

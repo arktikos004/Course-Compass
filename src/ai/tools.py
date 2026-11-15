@@ -14,6 +14,9 @@ from api.filters import normalize_weekday as day_to_num
 
 from .parse import TIME_OF_DAY
 
+# 大綱有命中、但一門都對不到目前的課程資料：索引是用別次爬取的課程鍵建的（序號編法不同），要重建
+STALE_INDEX_NOTE = "大綱索引的課程鍵與目前的課程資料對不上，請重建索引（python main.py fetch-syllabi && python main.py build-index）"
+
 PERIOD_TIMES = {
     1: ("08:10", "09:00"), 2: ("09:05", "09:55"), 3: ("10:15", "11:05"), 4: ("11:10", "12:00"),
     5: ("13:10", "14:00"), 6: ("14:05", "14:55"), 7: ("15:15", "16:05"), 8: ("16:10", "17:00"),
@@ -228,6 +231,8 @@ def semantic_search_syllabus(ctx: CourseContext, query: str, k: int = 8, **_igno
             continue
         out.append({**ctx.compact(c), "score": round(h["score"], 3), "section": h.get("section"),
                     "snippet": h["text"][:120]})
+    if hits and not out:
+        return {"available": False, "hits": [], "note": STALE_INDEX_NOTE}
     return {"available": True, "hits": out}
 
 

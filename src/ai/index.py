@@ -6,6 +6,7 @@
 
 import json
 import logging
+import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -24,9 +25,16 @@ DENSE_WEIGHT = 0.5    # 混合搜尋：向量相似度與字元 bigram TF-IDF �
 BATCH = 32
 
 
-def _paths(year: int, semester: int) -> Dict[str, Path]:
-    stem = SYLLABUS_DIR / f"index_{year}-{semester}"
-    return {"vec": stem.with_suffix(".npy"), "meta": stem.with_suffix(".csv"), "info": stem.with_suffix(".json")}
+def _paths(year: int, semester: int, variant: str = "") -> Dict[str, Path]:
+    """variant="mock" 是換成真 embedding 前留下的 mock 索引備份，評估時當對照組"""
+    stem = f"index_{year}-{semester}" + (f".{variant}" if variant else "")
+    return {k: SYLLABUS_DIR / f"{stem}.{ext}" for k, ext in (("vec", "npy"), ("meta", "csv"), ("info", "json"))}
+
+
+def _embed_name(client) -> str:
+    """索引記錄的 embedding 名稱；查詢時必須和建索引時相同，否則向量空間不一致。
+    每種用戶端都有 embed_model（離線替身是 mock-char-bigram；API 沒設定時是空字串）。"""
+    return getattr(client, "embed_model", "") or ""
 
 
 def _normalize(m: np.ndarray) -> np.ndarray:
@@ -64,6 +72,27 @@ class SyllabusIndex:
         meta = pd.DataFrame(rows)
         if meta.empty:
             raise RuntimeError("沒有可建索引的大綱文字，請先執行 python main.py fetch-syllabi")
+        return cls._embed_and_save(year, semester, meta, client)
+
+    @classmethod
+    def reembed(cls, year: int, semester: int, client) -> "SyllabusIndex":
+        """沿用現有索引的切塊（不重讀 PDF），只重算向量。換 embedding 模型時用，
+        切塊完全相同，前後比較才公平。舊索引若是 mock，先備份成 index_*.mock.* 供評估對照。"""
+        p = _paths(year, semester)
+        if not p["info"].exists():
+            raise FileNotFoundError(f"找不到 {year}-{semester} 的大綱索引，請先執行 python main.py build-index")
+        old = json.loads(p["info"].read_text(encoding="utf-8"))
+        meta = pd.read_csv(p["meta"], encoding="utf-8-sig", dtype={"code": str})
+        if old.get("provider") == "mock":
+            backup = _paths(year, semester, "mock")
+            for k in p:
+                shutil.copyfile(p[k], backup[k])
+            log.info("舊的 mock 索引已備份為 %s", backup["info"].name)
+        return cls._embed_and_save(year, semester, meta, client)
+
+    @classmethod
+    def _embed_and_save(cls, year: int, semester: int, meta: pd.DataFrame, client) -> "SyllabusIndex":
+        meta = meta.fillna({"name": "", "section": "", "text": ""})
         inputs = [f"{n}｜{s}：{t}" for n, s, t in zip(meta["name"], meta["section"], meta["text"])]
         vecs = []
         for i in range(0, len(inputs), BATCH):
@@ -72,8 +101,7 @@ class SyllabusIndex:
                 log.info("embedding %d/%d", min(i + BATCH, len(inputs)), len(inputs))
         vectors = _normalize(np.asarray(vecs, dtype=np.float32))
         info = {
-            "year": year, "semester": semester, "provider": client.provider,
-            "embed_model": client.embed_model,
+            "year": year, "semester": semester, "provider": client.provider, "embed_model": _embed_name(client),
             "dim": int(vectors.shape[1]), "n_chunks": int(len(meta)), "n_courses": int(meta[["code", "serial"]].drop_duplicates().shape[0]),
             "built_at": datetime.now().isoformat(timespec="seconds"),
         }
@@ -85,17 +113,17 @@ class SyllabusIndex:
         return cls(vectors, meta, info, client)
 
     @classmethod
-    def load(cls, year: int, semester: int, client=None) -> "SyllabusIndex":
-        p = _paths(year, semester)
+    def load(cls, year: int, semester: int, client=None, variant: str = "") -> "SyllabusIndex":
+        p = _paths(year, semester, variant)
         if not p["info"].exists():
             raise FileNotFoundError(f"找不到 {year}-{semester} 的大綱索引")
         info = json.loads(p["info"].read_text(encoding="utf-8"))
         if client is None:
             from .llm import get_client
             client = get_client(info["provider"], fallback=False)
-            if client.embed_model != info["embed_model"]:
-                raise RuntimeError(f"索引是用 {info['embed_model']} 建的，目前設定的是 {client.embed_model or '（未設定）'}，"
-                                   "向量空間不一致；請重新執行 python main.py build-index")
+        if _embed_name(client) != info["embed_model"]:
+            raise RuntimeError(f"索引是用 {info['embed_model']} 建的，目前的 embedding 是 {_embed_name(client) or '（未設定）'}，"
+                               "向量空間不一致；請把 embedding 模型改回來，或執行 python main.py build-index --reembed")
         meta = pd.read_csv(p["meta"], encoding="utf-8-sig", dtype={"code": str})
         return cls(np.load(p["vec"]), meta, info, client)
 
@@ -161,13 +189,19 @@ def answer_from_syllabus(index: SyllabusIndex, code: str, serial, question: str,
     try:
         data = json.loads(out["content"])
     except json.JSONDecodeError:
-        data = {"answer": out["content"], "cited": []}
-    cited = [n for n in data.get("cited", []) if isinstance(n, int) and 1 <= n <= len(chunks)] or [1]
+        data = None
+    if out.get("truncated") or not isinstance(data, dict):
+        # 輸出被截斷或不是 JSON（多半是重複生成迴圈）：不要把半截的原文丟給使用者
+        return {"answer": "模型這次的輸出不完整，沒有產生回答；以下附上大綱中最相關的段落供參考。",
+                "citations": [{"n": 1, **chunks[0]}], "cited_by_model": [], "truncated": True,
+                "provider": getattr(client, "name", "")}
+    by_model = [n for n in data.get("cited", []) if isinstance(n, int) and 1 <= n <= len(chunks)]
+    cited = by_model or [1]  # 模型沒標引用時仍附上最相關段落給使用者對照；評估看 cited_by_model
     return {"answer": data.get("answer", ""), "citations": [{"n": n, **chunks[n - 1]} for n in cited],
-            "provider": getattr(client, "name", "")}
+            "cited_by_model": by_model, "provider": getattr(client, "name", "")}
 
 
-def main(semester_label: Optional[str] = None):
+def main(semester_label: Optional[str] = None, reembed: bool = False):
     from utils.common import setup_logging
 
     from .llm import get_client
@@ -181,7 +215,9 @@ def main(semester_label: Optional[str] = None):
         _, year, semester = latest_semester_courses()
     client = get_client()
     if getattr(client, "name", "").startswith("mock"):
+        if reembed:
+            raise SystemExit(f"--reembed 是為了換成真的 embedding，但 Ollama 無法使用：{getattr(client, 'fallback_reason', 'AI_PROVIDER=mock')}")
         print(f"⚠️  使用離線 mock embedding（字元雜湊，沒有語意理解）。原因：{getattr(client, 'fallback_reason', 'AI_PROVIDER=mock')}")
-    idx = SyllabusIndex.build(year, semester, client)
+    idx = SyllabusIndex.reembed(year, semester, client) if reembed else SyllabusIndex.build(year, semester, client)
     print(f"已建立 {year}-{semester} 大綱索引：{idx.info['n_courses']} 門課、{idx.info['n_chunks']} 塊，"
           f"embedding={idx.info['embed_model']}，維度 {idx.info['dim']}")

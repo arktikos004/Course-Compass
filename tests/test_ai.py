@@ -23,7 +23,7 @@ for path in (str(ROOT), str(ROOT / "src")):
         sys.path.insert(0, path)
 
 from ai.agent import run_agent  # noqa: E402
-from ai.llm import ApiClient, LLMUnavailable, MockClient  # noqa: E402
+from ai.llm import ApiClient, LLMUnavailable, MockClient, OllamaClient  # noqa: E402
 from ai.parse import course_satisfies, parse_request  # noqa: E402
 from ai.syllabus import chunk_text, clean_text, split_sections  # noqa: E402
 from ai.tools import CourseContext, check_schedule_conflict, find_courses, run_tool  # noqa: E402
@@ -379,6 +379,61 @@ class TestAgent(unittest.TestCase):
         self.assertIn("error", run_tool(ctx, "rm_rf", {}))
         self.assertIn("error", run_tool(ctx, "find_courses", {"limit": "not-a-number"}))
 
+    def test_stats_flag_invalid_final_json(self):
+        class ProseClient(LyingClient):
+            def chat(self, messages, tools=None, format=None):
+                out = super().chat(messages, tools, format)
+                return {**out, "content": "我推薦資料分析", "prompt_tokens": 1234} if format else out
+
+        ctx = semester_context()
+        res = run_agent([{"role": "user", "content": "隨便推薦"}], ctx, ProseClient(next(iter(ctx._by_key))))
+        self.assertEqual(res["stats"], {"max_prompt_tokens": 1234, "tool_errors": 0, "final_json_ok": False, "truncated": 0})
+        self.assertEqual(res["courses"], [])
+        self.assertEqual(res["reply"], "我推薦資料分析")
+
+
+def fake_ollama(installed, model="qwen2.5:7b", embed_model="bge-m3"):
+    """不連 Ollama、也不需要裝 ollama 套件的 OllamaClient（CI 沒裝 requirements-ai.txt）"""
+    from types import SimpleNamespace
+
+    client = OllamaClient.__new__(OllamaClient)
+    client.model, client.embed_model, client.num_ctx, client.name = model, embed_model, 8192, f"ollama:{model}"
+    client.client = SimpleNamespace(list=lambda: SimpleNamespace(models=[SimpleNamespace(model=n) for n in installed]))
+    return client
+
+
+class TestOllamaClient(unittest.TestCase):
+    def test_ping_requires_both_chat_and_embed_model(self):
+        from ai.llm import LLMUnavailable
+
+        fake_ollama(["qwen2.5:7b", "bge-m3:latest"]).ping()
+        with self.assertRaisesRegex(LLMUnavailable, "bge-m3"):
+            fake_ollama(["qwen2.5:7b"]).ping()
+        with self.assertRaisesRegex(LLMUnavailable, "qwen2.5:7b"):
+            fake_ollama(["qwen2.5:14b", "bge-m3:latest"]).ping()  # 同系列不同大小不算
+
+    def test_get_client_parses_model_and_falls_back(self):
+        from unittest import mock
+
+        from ai import llm
+
+        made = []
+
+        def factory(model):
+            made.append(model)
+            return fake_ollama(["qwen2.5:14b", "bge-m3"] if model == "qwen2.5:14b" else [], model=model)
+
+        with mock.patch.object(llm, "OllamaClient", side_effect=factory), mock.patch.dict(llm._client_cache, clear=True):
+            c = llm.get_client("ollama:qwen2.5:14b")
+            self.assertEqual(c.name, "ollama:qwen2.5:14b")
+            self.assertIs(llm.get_client("ollama:qwen2.5:14b"), c)  # 快取，不重新 ping
+            self.assertEqual(made, ["qwen2.5:14b"])
+            fallback = llm.get_client("ollama:not-pulled")
+            self.assertTrue(fallback.name.startswith("mock"))
+            self.assertIn("not-pulled", fallback.fallback_reason)
+            with self.assertRaises(Exception):
+                llm.get_client("ollama:not-pulled", fallback=False)
+
 
 class _Obj:
     def __init__(self, **kw):
@@ -607,6 +662,92 @@ class TestSyllabusIndex(unittest.TestCase):
         ans = answer_from_syllabus(self.index, "A1", 1, "期中考占多少", MockClient())
         self.assertEqual(ans["citations"][0]["section"], "評量方式")
         self.assertEqual(answer_from_syllabus(self.index, "ZZZ", 9, "?", MockClient())["citations"], [])
+
+    def test_stale_index_keys_are_reported_not_silently_empty(self):
+        from ai.tools import semantic_search_syllabus
+
+        # 索引的課程鍵（A1、B2）在課程資料裡都不存在：不能默默回傳 0 筆
+        ctx = CourseContext(semester_df=filter_by_semester(HISTORY, 114, 2), history_df=HISTORY,
+                            year=115, semester=1, syllabus_index=self.index)
+        res = semantic_search_syllabus(ctx, "Python 資料分析")
+        self.assertFalse(res["available"])
+        self.assertIn("重建索引", res["note"])
+
+    def test_qa_reports_whether_model_cited(self):
+        from ai.index import answer_from_syllabus
+
+        class NoCiteClient:
+            name = "ollama:fake"
+
+            def chat(self, messages, tools=None, format=None):
+                return {"content": json.dumps({"answer": "期中考 30%", "cited": [7]}), "tool_calls": []}
+
+        ans = answer_from_syllabus(self.index, "A1", 1, "期中考占多少", NoCiteClient())
+        self.assertEqual(ans["cited_by_model"], [])  # 7 超出範圍，等於沒標
+        self.assertEqual([c["n"] for c in ans["citations"]], [1])  # 介面上仍附最相關段落
+
+    def test_qa_truncated_output_is_not_shown_raw(self):
+        from ai.index import answer_from_syllabus
+
+        class LoopingClient:
+            name = "ollama:fake"
+
+            def chat(self, messages, tools=None, format=None):
+                return {"content": '{"answer": "占 30%。[1]引用編號：[1]引用編號：[1]引用', "tool_calls": [], "truncated": True}
+
+        ans = answer_from_syllabus(self.index, "A1", 1, "期中考占多少", LoopingClient())
+        self.assertTrue(ans["truncated"])
+        self.assertNotIn("引用編號", ans["answer"])
+        self.assertEqual(ans["citations"][0]["section"], "評量方式")
+
+
+class FakeEmbedClient:
+    """代替 Ollama embedding：固定的 8 維向量"""
+    name = "ollama:fake"
+    provider = "ollama"
+    embed_model = "fake-embed"
+
+    def embed(self, texts):
+        return [[float(len(t) % (i + 2)) + 1.0 for i in range(8)] for t in texts]
+
+
+@unittest.skipUnless(HAS_SKLEARN, "需要 scikit-learn（pip install -r requirements-ai.txt）")
+class TestIndexReembed(unittest.TestCase):
+    def setUp(self):
+        from unittest import mock
+
+        from ai import index as index_module
+
+        self.tmp = tempfile.TemporaryDirectory()
+        patcher = mock.patch.object(index_module, "SYLLABUS_DIR", Path(self.tmp.name))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.addCleanup(self.tmp.cleanup)
+        self.meta = pd.DataFrame([
+            {"code": "A1", "serial": 1, "name": "資料分析入門", "section": "教學目標", "text": "學會用 Python 做資料分析"},
+            {"code": "B2", "serial": 2, "name": "西洋美術史", "section": "教材", "text": "藝術的故事"},
+        ])
+        index_module.SyllabusIndex._embed_and_save(115, 1, self.meta, MockClient())
+
+    def test_reembed_keeps_chunks_and_backs_up_mock_index(self):
+        from ai.index import SyllabusIndex
+
+        idx = SyllabusIndex.reembed(115, 1, FakeEmbedClient())
+        self.assertEqual(idx.info["provider"], "ollama")
+        self.assertEqual(idx.info["embed_model"], "fake-embed")
+        self.assertEqual(idx.vectors.shape, (2, 8))
+        self.assertEqual(idx.meta["text"].tolist(), self.meta["text"].tolist())
+        backup = json.loads((Path(self.tmp.name) / "index_115-1.mock.json").read_text(encoding="utf-8"))
+        self.assertEqual(backup["embed_model"], "mock-char-bigram")
+        self.assertEqual(SyllabusIndex.load(115, 1, client=MockClient(), variant="mock").vectors.shape[1], MockClient.EMBED_DIM)
+
+    def test_load_rejects_different_embedding_model(self):
+        from ai.index import SyllabusIndex
+
+        SyllabusIndex.reembed(115, 1, FakeEmbedClient())
+        self.assertEqual(SyllabusIndex.load(115, 1, client=FakeEmbedClient()).info["embed_model"], "fake-embed")
+        with self.assertRaisesRegex(RuntimeError, "fake-embed"):
+            SyllabusIndex.load(115, 1, client=MockClient())
 
 
 if __name__ == "__main__":
